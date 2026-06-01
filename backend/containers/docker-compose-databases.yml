@@ -1,0 +1,111 @@
+version: '3.8'
+name: HealthMonitor IoT - Databases
+
+services:
+  # 1. Baza dla Patient Service
+  patient_db:
+    image: postgres:latest
+    container_name: patient_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: patient_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - patient_db_data:/var/lib/postgresql/data
+
+  # 2. Baza dla Medical Staff Service
+  staff_db:
+    image: postgres:latest
+    container_name: staff_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: staff_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - staff_db_data:/var/lib/postgresql/data
+
+  # 3. Baza dla Alert & Notification Service
+  alert_db:
+    image: postgres:latest
+    container_name: alert_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: alert_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - alert_db_data:/var/lib/postgresql/data
+
+  # 4. Baza dla Auth Service (Keycloak)
+  keycloak_db:
+    image: postgres:latest
+    container_name: keycloak_db
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+      POSTGRES_DB: keycloak_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+
+  # 5. Baza Time-Series dla Vital Signs Service (Pomiary medyczne IoT)
+  vital_signs_db:
+    image: influxdb:latest
+    container_name: vital_signs_db
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword123
+      DOCKER_INFLUXDB_INIT_ORG: health_monitoring
+      DOCKER_INFLUXDB_INIT_BUCKET: vital_signs
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: super-secret-auth-token-123
+    ports:
+      - "8086:8086"
+    volumes:
+      - vital_signs_data:/var/lib/influxdb2
+
+  # 6. Message Broker (RabbitMQ z interfejsem graficznym)
+  message_broker:
+    image: rabbitmq:3.12-management
+    container_name: message_broker
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: adminpassword
+    ports:
+      - "5672:5672"   # Port główny do komunikacji mikroserwisów (AMQP)
+      - "15672:15672" # Port do panelu zarządzania w przeglądarce
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+    # 7. Interfejs graficzny dla PostgreSQL (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: adminpassword
+    ports:
+      - "5050:80"
+    depends_on:
+      - patient_db
+      - staff_db
+      - alert_db
+      - keycloak_db
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+# Deklaracja wolumenów zapewniająca, że dane przetrwają restarty kontenerów
+volumes:
+  patient_db_data:
+  staff_db_data:
+  alert_db_data:
+  keycloak_db_data:
+  vital_signs_data:
+  rabbitmq_data:
+  pgadmin_data:
