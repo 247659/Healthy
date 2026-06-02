@@ -17,3 +17,11 @@ spring:
               uri: http://localhost:8082
               predicates:
                 - Path=/api/v1/medical-staff/**
+            - id: vital-signs-service-route
+              uri: http://localhost:8084
+              predicates:
+                - Path=/api/v1/vital-signs/**
+            - id: notification-service-route
+              uri: http://localhost:8085
+              predicates:
+                - Path=/api/v1/notifications/**
