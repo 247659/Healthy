@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: patient-service-route
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/v1/patients/**
+            - id: medical-staff-service-route
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/v1/medical-staff/**
+            - id: vital-signs-service-route
+              uri: http://localhost:8084
+              predicates:
+                - Path=/api/v1/vital-signs/**
+            - id: notification-service-route
+              uri: http://localhost:8085
+              predicates:
+                - Path=/api/v1/notifications/**
