@@ -1,0 +1,15 @@
+version: '3.8'
+name: HealthMonitor IoT - KeyCloak
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak-server
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev --import-realm
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
