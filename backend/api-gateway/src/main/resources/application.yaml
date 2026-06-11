@@ -10,18 +10,18 @@ spring:
         webflux:
           routes:
             - id: patient-service-route
-              uri: http://localhost:8081
+              uri: lb://patient-service
               predicates:
                 - Path=/api/v1/patients/**
             - id: medical-staff-service-route
-              uri: http://localhost:8082
+              uri: lb://medical-staff-service
               predicates:
                 - Path=/api/v1/medical-staff/**
             - id: vital-signs-service-route
-              uri: http://localhost:8084
+              uri: lb://vital-signs-service
               predicates:
                 - Path=/api/v1/vital-signs/**
             - id: notification-service-route
-              uri: http://localhost:8085
+              uri: lb://notification-service
               predicates:
                 - Path=/api/v1/notifications/**
