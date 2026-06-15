@@ -15,8 +15,7 @@ public class SpringSecurity {
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/api/v1/patients/register").permitAll()
-                        .pathMatchers("/api/v1/patients/login").permitAll()
+                        .pathMatchers("/api/v1/auth/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(org.springframework.security.config.Customizer.withDefaults()));

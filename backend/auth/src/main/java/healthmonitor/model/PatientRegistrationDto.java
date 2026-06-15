@@ -1,4 +1,4 @@
-package healthmonitor.model.dto;
+package healthmonitor.model;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

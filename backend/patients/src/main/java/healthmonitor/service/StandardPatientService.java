@@ -5,7 +5,6 @@ import healthmonitor.exception.exceptions.PatientNotFoundException;
 import healthmonitor.mapper.PatientMapper;
 import healthmonitor.model.Patient;
 import healthmonitor.model.dto.PatientDto;
-import healthmonitor.model.dto.PatientRegistrationDto;
 import healthmonitor.repository.PatientRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,29 +17,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StandardPatientService implements PatientService {
 
-    private final KeycloakUserService keycloakUserService;
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
-
-    @Transactional
-    @Override
-    public PatientDto registerPatient(PatientRegistrationDto dto) {
-        if (patientRepository.existsByEmail(dto.getEmail())) {
-            throw new DuplicateResourceException("Patient with this e-mail already exists");
-        }
-
-        String userId = keycloakUserService.createUserInKeycloak(
-                dto.getEmail(), dto.getPassword(), dto.getFirstName(), dto.getLastName());
-
-        Patient patient = new Patient();
-        patient.setId(userId);
-        patient.setEmail(dto.getEmail());
-        patient.setFirstName(dto.getFirstName());
-        patient.setLastName(dto.getLastName());
-
-        Patient savedPatient = patientRepository.save(patient);
-        return patientMapper.toDto(savedPatient);
-    }
 
     @Override
     public PatientDto getPatientById(String id) {

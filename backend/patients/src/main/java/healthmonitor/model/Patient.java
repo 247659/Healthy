@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -36,4 +37,7 @@ public class Patient {
 
     @Column(name = "address")
     private String address;
+
+    @Column(name = "createdAt")
+    private LocalDateTime createdAt;
 }

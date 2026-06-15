@@ -1,6 +1,8 @@
 {
   "id": "798db67b-d422-4637-b3a0-fe11763b4a46",
   "realm": "healthmonitor-realm",
+  "displayName": "",
+  "displayNameHtml": "",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
@@ -49,6 +51,15 @@
   "roles": {
     "realm": [
       {
+        "id": "f542b78d-ecc5-406f-a264-7fb1bc15560c",
+        "name": "PATIENT",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "798db67b-d422-4637-b3a0-fe11763b4a46",
+        "attributes": {}
+      },
+      {
         "id": "95d3696b-5aed-4c1b-972f-8d63f0d360ff",
         "name": "default-roles-healthmonitor-realm",
         "description": "${role_default-roles}",
@@ -89,7 +100,6 @@
       }
     ],
     "client": {
-      "patient-service-backend": [],
       "realm-management": [
         {
           "id": "0cf3db75-9fb4-4f33-bf2d-0c9e296cfe15",
@@ -302,6 +312,7 @@
           "attributes": {}
         }
       ],
+      "auth-service-backend": [],
       "health-api": [],
       "security-admin-console": [],
       "admin-cli": [],
@@ -463,12 +474,12 @@
   "users": [
     {
       "id": "7a135eb2-c6eb-4a4c-aa28-cdf2c6d5e185",
-      "username": "service-account-patient-service-backend",
+      "username": "service-account-auth-service-backend",
       "emailVerified": false,
       "enabled": true,
       "createdTimestamp": 1781524170782,
       "totp": false,
-      "serviceAccountClientId": "patient-service-backend",
+      "serviceAccountClientId": "auth-service-backend",
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [
@@ -476,6 +487,7 @@
       ],
       "clientRoles": {
         "realm-management": [
+          "view-realm",
           "manage-users"
         ]
       },
@@ -653,6 +665,69 @@
       ]
     },
     {
+      "id": "86a678a4-6b83-4891-8050-9dad102a330e",
+      "clientId": "auth-service-backend",
+      "name": "Auth Service",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "**********",
+      "redirectUris": [
+        ""
+      ],
+      "webOrigins": [
+        ""
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "logout.confirmation.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1781524170",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
+        "frontchannel.logout.session.required": "true",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "display.on.consent.screen": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "service_account",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "id": "494cc725-c7b4-4122-bd73-211c4573bba2",
       "clientId": "broker",
       "name": "${client_broker}",
@@ -742,66 +817,6 @@
       "nodeReRegistrationTimeout": -1,
       "defaultClientScopes": [
         "web-origins",
-        "acr",
-        "roles",
-        "profile",
-        "basic",
-        "email"
-      ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "offline_access",
-        "organization",
-        "microprofile-jwt"
-      ]
-    },
-    {
-      "id": "86a678a4-6b83-4891-8050-9dad102a330e",
-      "clientId": "patient-service-backend",
-      "name": "Patient Service",
-      "description": "",
-      "rootUrl": "",
-      "adminUrl": "",
-      "baseUrl": "",
-      "surrogateAuthRequired": false,
-      "enabled": true,
-      "alwaysDisplayInConsole": false,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
-      "redirectUris": [
-        ""
-      ],
-      "webOrigins": [
-        ""
-      ],
-      "notBefore": 0,
-      "bearerOnly": false,
-      "consentRequired": false,
-      "standardFlowEnabled": true,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": true,
-      "publicClient": false,
-      "frontchannelLogout": true,
-      "protocol": "openid-connect",
-      "attributes": {
-        "realm_client": "false",
-        "oidc.ciba.grant.enabled": "false",
-        "client.secret.creation.time": "1781524170",
-        "backchannel.logout.session.required": "true",
-        "oauth2.jwt.authorization.grant.enabled": "false",
-        "standard.token.exchange.enabled": "false",
-        "oauth2.device.authorization.grant.enabled": "false",
-        "backchannel.logout.revoke.offline.tokens": "false",
-        "dpop.bound.access.tokens": "false"
-      },
-      "authenticationFlowBindingOverrides": {},
-      "fullScopeAllowed": true,
-      "nodeReRegistrationTimeout": -1,
-      "defaultClientScopes": [
-        "web-origins",
-        "service_account",
         "acr",
         "roles",
         "profile",
@@ -2670,9 +2685,12 @@
     "realmReusableOtpCode": "false",
     "cibaExpiresIn": "120",
     "oauth2DeviceCodeLifespan": "600",
+    "saml.signature.algorithm": "",
     "parRequestUriLifespan": "60",
     "clientSessionMaxLifespan": "0",
-    "scimApiEnabled": "false"
+    "frontendUrl": "",
+    "scimApiEnabled": "false",
+    "acr.loa.map": "{}"
   },
   "keycloakVersion": "26.6.3",
   "userManagedAccessAllowed": false,
