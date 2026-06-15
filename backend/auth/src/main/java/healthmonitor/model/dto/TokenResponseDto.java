@@ -1,4 +1,4 @@
-package healthmonitor.model;
+package healthmonitor.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

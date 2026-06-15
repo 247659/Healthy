@@ -1,9 +1,10 @@
 package healthmonitor.controller;
 
-import healthmonitor.model.LoginRequestDto;
-import healthmonitor.model.LogoutRequestDto;
-import healthmonitor.model.PatientRegistrationDto;
-import healthmonitor.model.TokenResponseDto;
+import healthmonitor.model.dto.LoginRequestDto;
+import healthmonitor.model.dto.LogoutRequestDto;
+import healthmonitor.model.dto.PatientRegistrationDto;
+import healthmonitor.model.dto.RefreshTokenRequestDto;
+import healthmonitor.model.dto.TokenResponseDto;
 import healthmonitor.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,5 +40,11 @@ public class AuthController {
     public ResponseEntity<Void> logout(@RequestBody LogoutRequestDto dto) {
         authService.logout(dto);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponseDto> refreshToken(@RequestBody RefreshTokenRequestDto dto) {
+        TokenResponseDto newTokens = authService.refresh(dto);
+        return ResponseEntity.ok(newTokens);
     }
 }

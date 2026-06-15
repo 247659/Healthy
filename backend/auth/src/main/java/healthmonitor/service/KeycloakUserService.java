@@ -1,7 +1,7 @@
 package healthmonitor.service;
 
 import healthmonitor.config.RabbitMQConfig;
-import healthmonitor.model.TokenResponseDto;
+import healthmonitor.model.dto.TokenResponseDto;
 import healthmonitor.model.UserRegisteredEvent;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
@@ -144,6 +144,32 @@ public class KeycloakUserService {
             rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EXCHANGE, "user.registered.patient", event);
         } else {
             throw new RuntimeException("Error while creating user in Keycloak: " + response.getStatusInfo().getReasonPhrase());
+        }
+    }
+
+    public TokenResponseDto refreshAccessToken(String refreshToken) {
+        String tokenEndpoint = serverUrl + "/realms/" + realm + "/protocol/openid-connect/token";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("client_id", PUBLIC_CLIENT_ID);
+        map.add("grant_type", "refresh_token");
+        map.add("refresh_token", refreshToken);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenEndpoint, request, Map.class);
+            Map<String, Object> body = response.getBody();
+
+            return new TokenResponseDto(
+                    (String) body.get("access_token"),
+                    (String) body.get("refresh_token")
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Your session has expired. Please log in again.");
         }
     }
 }

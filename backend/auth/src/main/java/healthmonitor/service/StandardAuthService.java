@@ -1,9 +1,10 @@
 package healthmonitor.service;
 
-import healthmonitor.model.LoginRequestDto;
-import healthmonitor.model.LogoutRequestDto;
-import healthmonitor.model.PatientRegistrationDto;
-import healthmonitor.model.TokenResponseDto;
+import healthmonitor.model.dto.LoginRequestDto;
+import healthmonitor.model.dto.LogoutRequestDto;
+import healthmonitor.model.dto.PatientRegistrationDto;
+import healthmonitor.model.dto.RefreshTokenRequestDto;
+import healthmonitor.model.dto.TokenResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,5 +28,10 @@ public class StandardAuthService implements AuthService {
     @Override
     public void logout(LogoutRequestDto logoutRequestDto) {
         keycloakUserService.logout(logoutRequestDto.getRefreshToken());
+    }
+    
+    @Override
+    public TokenResponseDto refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
+        return keycloakUserService.refreshAccessToken(refreshTokenRequestDto.getRefreshToken());
     }
 }
