@@ -13,15 +13,12 @@ public class SpringSecurity {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http
-                .csrf(csrf -> csrf.disable()) // Wyłączamy CSRF dla API typu REST
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
-                        // Jeśli chcesz wypuścić jakiś adres bez logowania, np. testowy
-                        // .pathMatchers("/api/v1/patients/test/hello").permitAll()
-
-                        // Wszystkie inne żądania wymagają bycia zalogowanym
+                        .pathMatchers("/api/v1/patients/register").permitAll()
+                        .pathMatchers("/api/v1/patients/login").permitAll()
                         .anyExchange().authenticated()
                 )
-                // Mówimy Gatewayowi: "Sprawdzaj tokeny JWT w nagłówku Authorization"
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(org.springframework.security.config.Customizer.withDefaults()));
 
         return http.build();

@@ -1,7 +1,7 @@
 package healthmonitor.controller;
 
 import healthmonitor.model.dto.PatientDto;
-import healthmonitor.model.dto.PatientUpdateDto;
+import healthmonitor.model.dto.PatientRegistrationDto;
 import healthmonitor.service.PatientService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -24,9 +24,9 @@ public class PatientController {
 
     private final PatientService patientService;
 
-    @PostMapping
-    public ResponseEntity<PatientDto> createPatient(@Valid @RequestBody PatientDto patientDto) {
-        PatientDto createdPatient = patientService.createPatient(patientDto);
+    @PostMapping("/register")
+    public ResponseEntity<PatientDto> registerPatient(@Valid @RequestBody PatientRegistrationDto patientDto) {
+        PatientDto createdPatient = patientService.registerPatient(patientDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPatient);
     }
 
@@ -40,8 +40,8 @@ public class PatientController {
         return ResponseEntity.ok(patientService.getAllPatients());
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<PatientDto> updatePatient(@PathVariable String id, @Valid @RequestBody PatientUpdateDto patientDto) {
+    @PutMapping("/update/{id}")
+    public ResponseEntity<PatientDto> updatePatient(@PathVariable String id, @Valid @RequestBody PatientDto patientDto) {
         return ResponseEntity.ok(patientService.updatePatient(id, patientDto));
     }
 

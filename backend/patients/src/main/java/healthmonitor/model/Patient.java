@@ -2,8 +2,6 @@ package healthmonitor.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -16,17 +14,16 @@ import java.time.LocalDate;
 public class Patient {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
     @Column(name = "name", nullable = false)
-    private String name;
+    private String firstName;
 
     @Column(name = "surname", nullable = false)
-    private String surname;
+    private String lastName;
 
     @Column(name = "pesel", unique = true)
     private String pesel;
