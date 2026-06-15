@@ -13,7 +13,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - patient_db_data:/var/lib/postgresql/data
+      - patient_db_data:/var/lib/postgresql
 
   # 2. Baza dla Medical Staff Service
   staff_db:
@@ -26,7 +26,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - staff_db_data:/var/lib/postgresql/data
+      - staff_db_data:/var/lib/postgresql
 
   # 3. Baza dla Alert & Notification Service
   alert_db:
@@ -39,7 +39,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - alert_db_data:/var/lib/postgresql/data
+      - alert_db_data:/var/lib/postgresql
 
   # 4. Baza dla Auth Service (Keycloak) + Keycloak Server
   keycloak_db:
@@ -52,7 +52,7 @@ services:
     ports:
       - "5435:5432"
     volumes:
-      - keycloak_db_data:/var/lib/postgresql/data
+      - keycloak_db_data:/var/lib/postgresql
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
