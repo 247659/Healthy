@@ -9,14 +9,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String AUTH_EXCHANGE = "auth.exchange";
+    public static final String EXCHANGE_NAME = "iot.vitals.exchange";
 
     @Bean
-    public TopicExchange authExchange() {
-        return new TopicExchange(AUTH_EXCHANGE);
+    public TopicExchange vitalsExchange() {
+        return new TopicExchange(EXCHANGE_NAME);
     }
 
-    // Zamienia obiekty Javy na format JSON dla RabbitMQ
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();

@@ -1,5 +1,5 @@
 PRZYKŁAD HTTP (REALTIME):
-python simulator.py --mode realtime --patient-id JanKowalski --url "http://localhost:8080/api/vitals"
+python simulator.py --mode realtime --patient-id JanKowalski --url "http://localhost:8080/api/v1/integration"
 
 PRZYKŁAD BATCH (ZAPIS DO PLIKU):
 python simulator.py --mode batch --patient-id JanKowalski --days 30

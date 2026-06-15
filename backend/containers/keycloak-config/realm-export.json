@@ -314,6 +314,7 @@
       ],
       "auth-service-backend": [],
       "health-api": [],
+      "iot-device-simulator": [],
       "security-admin-console": [],
       "admin-cli": [],
       "account-console": [],
@@ -491,6 +492,22 @@
           "manage-users"
         ]
       },
+      "notBefore": 0,
+      "groups": []
+    },
+    {
+      "id": "67e98515-6067-4cc0-b912-df3762b5de9c",
+      "username": "service-account-iot-device-simulator",
+      "emailVerified": false,
+      "enabled": true,
+      "createdTimestamp": 1781558128275,
+      "totp": false,
+      "serviceAccountClientId": "iot-device-simulator",
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": [
+        "default-roles-healthmonitor-realm"
+      ],
       "notBefore": 0,
       "groups": []
     }
@@ -676,7 +693,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "Q4T6eRN5lB520VuELv77mJW8BBZbwKVz",
       "redirectUris": [
         ""
       ],
@@ -799,15 +816,74 @@
       "frontchannelLogout": true,
       "protocol": "openid-connect",
       "attributes": {
-        "logout.confirmation.enabled": "false",
         "realm_client": "false",
+        "logout.confirmation.enabled": "false",
         "oidc.ciba.grant.enabled": "false",
         "backchannel.logout.session.required": "true",
-        "oauth2.jwt.authorization.grant.enabled": "false",
         "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
         "frontchannel.logout.session.required": "true",
         "post.logout.redirect.uris": "+",
+        "oauth2.device.authorization.grant.enabled": "false",
         "display.on.consent.screen": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "dbda3625-571c-435c-b2a9-2fa993134d33",
+      "clientId": "iot-device-simulator",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "xpbccFrxtYy4Fyrb5HdqK2EjjQ7hOPZR",
+      "redirectUris": [
+        ""
+      ],
+      "webOrigins": [
+        ""
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1781558128",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "dpop.bound.access.tokens": "false"
@@ -817,6 +893,7 @@
       "nodeReRegistrationTimeout": -1,
       "defaultClientScopes": [
         "web-origins",
+        "service_account",
         "acr",
         "roles",
         "profile",
