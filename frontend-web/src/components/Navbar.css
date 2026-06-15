@@ -1,0 +1,43 @@
+/* frontend/web/src/components/Navbar.css */
+.navbar {
+    background-color: #ffffff;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar-brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0066ff; /* Medyczny niebieski */
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.navbar-user-info {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.logout-btn {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+    background-color: #fee2e2;
+    border-color: #f87171;
+}

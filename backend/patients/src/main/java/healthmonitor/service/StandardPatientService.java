@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,25 +41,32 @@ public class StandardPatientService implements PatientService {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientNotFoundException("Patient with this ID doesn't exists: " + id));
 
-        if (updateRequest.getPesel() != null && patientRepository.existsByPesel(updateRequest.getPesel())) {
-            throw new DuplicateResourceException("Patient with this PESEL number already exists");
-        } else {
+        // 1. Walidacja PESEL: Sprawdzamy tylko wtedy, gdy podano nowy PESEL i jest on INNY niż obecny pesel pacjenta
+        if (updateRequest.getPesel() != null && !Objects.equals(patient.getPesel(), updateRequest.getPesel())) {
+            if (patientRepository.existsByPesel(updateRequest.getPesel())) {
+                throw new DuplicateResourceException("Patient with this PESEL number already exists");
+            }
             patient.setPesel(updateRequest.getPesel());
         }
 
-        if (!patient.getFirstName().equals(updateRequest.getFirstName())) {
+        // 2. Aktualizacja reszty pól (Objects.equals jest bezpieczne, nawet jeśli z bazy wraca null)
+        if (updateRequest.getFirstName() != null && !Objects.equals(patient.getFirstName(), updateRequest.getFirstName())) {
             patient.setFirstName(updateRequest.getFirstName());
         }
-        if (!patient.getLastName().equals(updateRequest.getLastName())) {
+
+        if (updateRequest.getLastName() != null && !Objects.equals(patient.getLastName(), updateRequest.getLastName())) {
             patient.setLastName(updateRequest.getLastName());
         }
-        if (!patient.getPhoneNumber().equals(updateRequest.getPhoneNumber())) {
+
+        if (updateRequest.getPhoneNumber() != null && !Objects.equals(patient.getPhoneNumber(), updateRequest.getPhoneNumber())) {
             patient.setPhoneNumber(updateRequest.getPhoneNumber());
         }
-        if (!patient.getAddress().equals(updateRequest.getAddress())) {
+
+        if (updateRequest.getAddress() != null && !Objects.equals(patient.getAddress(), updateRequest.getAddress())) {
             patient.setAddress(updateRequest.getAddress());
         }
-        if (!patient.getDateOfBirth().equals(updateRequest.getDateOfBirth())) {
+
+        if (updateRequest.getDateOfBirth() != null && !Objects.equals(patient.getDateOfBirth(), updateRequest.getDateOfBirth())) {
             patient.setDateOfBirth(updateRequest.getDateOfBirth());
         }
 
