@@ -11,24 +11,18 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
-
-    public static final String QUEUE_NAME = "patient.registration.queue";
-    public static final String AUTH_EXCHANGE = "auth.exchange";
-
-    @Bean
-    public Queue patientRegistrationQueue() {
-        return new Queue(QUEUE_NAME, true); // true = kolejka przetrwa restart RabbitMQ
-    }
+    public static final String QUEUE_NAME = "vitals.storage.queue";
+    public static final String EXCHANGE_NAME = "iot.vitals.exchange";
 
     @Bean
-    public TopicExchange authExchange() {
-        return new TopicExchange(AUTH_EXCHANGE);
-    }
+    public Queue vitalsQueue() { return new Queue(QUEUE_NAME, true); }
 
-    // Wiążemy kolejkę z Exchange używając klucza routingu
     @Bean
-    public Binding binding(Queue patientRegistrationQueue, TopicExchange authExchange) {
-        return BindingBuilder.bind(patientRegistrationQueue).to(authExchange).with("user.registered.patient");
+    public TopicExchange vitalsExchange() { return new TopicExchange(EXCHANGE_NAME); }
+
+    @Bean
+    public Binding binding(Queue vitalsQueue, TopicExchange vitalsExchange) {
+        return BindingBuilder.bind(vitalsQueue).to(vitalsExchange).with("vitals.incoming");
     }
 
     @Bean

@@ -6,6 +6,10 @@ import argparse
 import logging
 from datetime import datetime, timezone, timedelta
 
+KEYCLOAK_URL = "http://localhost:9090/realms/healthmonitor-realm/protocol/openid-connect/token"
+CLIENT_ID = "iot-device-simulator"
+CLIENT_SECRET = "xpbccFrxtYy4Fyrb5HdqK2EjjQ7hOPZR"
+
 # Konfiguracja loggera
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -82,9 +86,26 @@ class PatientSimulator:
                 "temperature": round(self.temp, 1),
                 "spO2": int(self.spo2)
             },
-            "isAnomaly": self.is_deteriorating
+            # "isAnomaly": self.is_deteriorating
         }
 
+
+def get_access_token():
+    """Pobiera Token JWT z Keycloaka dla urządzenia (M2M)"""
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+    try:
+        response = requests.post(KEYCLOAK_URL, data=payload, headers=headers)
+        response.raise_for_status()
+        return response.json().get("access_token")
+    except Exception as e:
+        logging.error(f"Nie udało się pobrać tokena z Keycloak: {e}")
+        return None
 
 def run_realtime(args):
     """Wysyłanie danych na żywo co X sekund przez HTTP"""
@@ -93,20 +114,35 @@ def run_realtime(args):
     
     patient = PatientSimulator(args.patient_id)
 
+    token = get_access_token()
+    if not token:
+        logging.error("Zatrzymanie symulatora z powodu braku autoryzacji.")
+        return
+
+    # 2. Tworzymy nagłówek z tokenem
+    api_headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
     try:
         while True:
             # ZMIANA: Nie losujemy tu anomalii! Pacjent jest "żywy" i sam steruje swoim stanem
             payload = patient.generate_vitals()
             
             # Odczytujemy z paczki, czy pacjent akurat teraz choruje (dla logów)
-            is_anomaly = payload["isAnomaly"]
+            # is_anomaly = payload["isAnomaly"]
             
             try:
-                response = requests.post(args.url, json=payload, timeout=2)
+                response = requests.post(args.url, json=payload, timeout=2, headers=api_headers)
                 if response.status_code in [200, 201, 202]:
                     # Wyświetlamy [ALARM!] na czerwono (w konsoli będzie czytelniej), jeśli jest anomalia
-                    status_text = "[ALARM!] Pogorszenie stanu!" if is_anomaly else "Wysłano dane (Norma)"
-                    logging.info(f"{status_text} Status: {response.status_code}")
+                    # status_text = "[ALARM!] Pogorszenie stanu!" if is_anomaly else "Wysłano dane (Norma)"
+                    logging.info(f"Wysłano dane. Status: {response.status_code}")
+                elif response.status_code == 401:
+                    logging.warning("Token wygasł! Próbuję pobrać nowy...")
+                    token = get_access_token()  # Odświeżenie tokena, jeśli wygasł
+                    api_headers["Authorization"] = f"Bearer {token}"
                 else:
                     logging.warning(f"Serwer zwrócił status: {response.status_code}")
                     
