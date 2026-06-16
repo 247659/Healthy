@@ -21,6 +21,7 @@ public class StandardPatientService implements PatientService {
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
 
+
     @Override
     public PatientDto getPatientById(String id) {
         Patient patient = patientRepository.findById(id)

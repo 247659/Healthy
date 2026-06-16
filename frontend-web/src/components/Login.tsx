@@ -35,7 +35,7 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
             navigate('/patients');
         } catch (err) {
             console.error('Błąd logowania:', err);
-            setError('Nieprawidłowy login lub hasło.');
+            setError('Nieprawidłowy email lub hasło.');
         } finally {
             // 3. Blok finally WYKONA SIĘ ZAWSZE - niezależnie czy logowanie się uda, czy wyrzuci błąd.
             // Dzięki temu przycisk nie "zawiśnie" w stanie ładowania w przypadku błędu.
@@ -53,7 +53,7 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
 
                 <form className="login-form" onSubmit={handleLogin}>
                     <div className="input-group">
-                        <label className="input-label">Login</label>
+                        <label className="input-label">Email</label>
                         <input
                             type="text"
                             className="login-input"
@@ -91,16 +91,6 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
                         {isLoading ? 'Logowanie...' : 'Zaloguj się'}
                     </button>
                 </form>
-
-                <div className="register-link-container">
-                    Nie masz jeszcze konta?
-                    {/* Jeśli ładuje, chowamy link lub go wyłączamy, by użytkownik nie uciekł podczas logowania */}
-                    {isLoading ? (
-                        <span className="register-link" style={{ cursor: 'wait', color: '#9ca3af' }}> Zarejestruj się</span>
-                    ) : (
-                        <Link to="/register" className="register-link">Zarejestruj się</Link>
-                    )}
-                </div>
             </div>
         </div>
     );
