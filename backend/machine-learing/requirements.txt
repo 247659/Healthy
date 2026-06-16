@@ -1,0 +1,4 @@
+SQLAlchemy~=2.0.51
+fastapi~=0.137.1
+pydantic~=2.13.4
+influxdb-client~=1.50.0
