@@ -26,6 +26,11 @@ public class StandardAuthService implements AuthService {
     }
 
     @Override
+    public TokenResponseDto loginDoctor(LoginRequestDto loginRequest) {
+        return keycloakUserService.loginDoctor(loginRequest.getEmail(), loginRequest.getPassword());
+    }
+
+    @Override
     public void logout(LogoutRequestDto logoutRequestDto) {
         keycloakUserService.logout(logoutRequestDto.getRefreshToken());
     }

@@ -34,6 +34,12 @@ public class AuthController {
         return ResponseEntity.ok(tokens);
     }
 
+    @PostMapping("/loginDoctor")
+    public ResponseEntity<TokenResponseDto> loginDoctor(@RequestBody LoginRequestDto dto) {
+        TokenResponseDto tokens = authService.loginDoctor(dto);
+        return ResponseEntity.ok(tokens);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody LogoutRequestDto dto) {
         authService.logout(dto);

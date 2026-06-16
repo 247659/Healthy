@@ -11,6 +11,8 @@ public interface AuthService {
 
     TokenResponseDto login(LoginRequestDto loginRequest);
 
+    TokenResponseDto loginDoctor(LoginRequestDto loginRequest);
+
     void logout(LogoutRequestDto logoutRequestDto);
 
     TokenResponseDto refresh(RefreshTokenRequestDto refreshTokenRequestDto);
