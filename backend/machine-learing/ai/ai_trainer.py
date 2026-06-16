@@ -38,3 +38,6 @@ class AITrainer:
         model_path = os.path.join(self.models_dir, f"{patient_id}_iforest.pkl")
         joblib.dump(model, model_path)
         return model
+
+    async def train_global_lstm(self, data_file: str):
+        pass
