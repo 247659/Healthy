@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, Path, Query
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 
 from schemas.vitals_schema import VitalsPayload
@@ -16,3 +18,13 @@ def get_vitals_service(influx_client: InfluxDBClientAsync = Depends(get_influx_c
 async def receive_vitals(payload: VitalsPayload, vitals_service: VitalsService = Depends(get_vitals_service)):
     result = await vitals_service.process_vitals(payload)
     return result
+
+
+@router.get("/api/vitals/{patientId}")
+async def get_history(
+        patientId: str = Path(..., title="ID Pacjenta"),
+        start_time: datetime = Query(..., description="Czas początkowy (np. 2026-06-15T00:00:00Z)"),
+        end_time: datetime = Query(..., description="Czas końcowy (np. 2026-06-16T23:59:59Z)"),
+        vitals_service: VitalsService = Depends(get_vitals_service)
+):
+    return await vitals_service.get_vitals_measure_history(patientId, start_time, end_time)
