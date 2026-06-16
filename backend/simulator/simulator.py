@@ -86,7 +86,7 @@ class PatientSimulator:
                 "temperature": round(self.temp, 1),
                 "spO2": int(self.spo2)
             },
-            # "isAnomaly": self.is_deteriorating
+            "isAnomaly": self.is_deteriorating
         }
 
 
@@ -131,7 +131,7 @@ def run_realtime(args):
             payload = patient.generate_vitals()
             
             # Odczytujemy z paczki, czy pacjent akurat teraz choruje (dla logów)
-            # is_anomaly = payload["isAnomaly"]
+            is_anomaly = payload["isAnomaly"]
             
             try:
                 response = requests.post(args.url, json=payload, timeout=2, headers=api_headers)
