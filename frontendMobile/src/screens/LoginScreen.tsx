@@ -85,35 +85,43 @@ export const LoginScreen = ({ onNavigateToRegister, onLoginSuccess }: LoginScree
                 ) : null}
 
                 <View style={styles.inputContainer}>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Adres e-mail"
-                        placeholderTextColor="#9CA3AF"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        value={email}
-                        onChangeText={setEmail}
-                        editable={!isLoading}
-                    />
-
-                    {/* Pole hasła z ikoną oczka */}
-                    <View style={styles.passwordContainer}>
+                    {/* Grupa Adres e-mail */}
+                    <View>
+                        <Text style={styles.inputLabel}>Adres e-mail</Text>
                         <TextInput
-                            style={styles.passwordInput}
-                            placeholder="Hasło"
+                            style={styles.input}
+                            placeholder="Wpisz swój e-mail"
                             placeholderTextColor="#9CA3AF"
-                            secureTextEntry={!showPassword}
-                            value={password}
-                            onChangeText={setPassword}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            value={email}
+                            onChangeText={setEmail}
                             editable={!isLoading}
                         />
-                        <TouchableOpacity
-                            style={styles.eyeIcon}
-                            onPress={() => setShowPassword(!showPassword)}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                        </TouchableOpacity>
+                    </View>
+
+                    {/* Grupa Hasło */}
+                    <View>
+                        <Text style={styles.inputLabel}>Hasło</Text>
+                        {/* Pole hasła z ikoną oczka */}
+                        <View style={styles.passwordContainer}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="Wpisz swoje hasło"
+                                placeholderTextColor="#9CA3AF"
+                                secureTextEntry={!showPassword}
+                                value={password}
+                                onChangeText={setPassword}
+                                editable={!isLoading}
+                            />
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowPassword(!showPassword)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -143,14 +151,19 @@ const styles = StyleSheet.create({
     brandName: { fontSize: 46, fontWeight: '900', color: '#1F2937', letterSpacing: -1 },
     brandDot: { color: '#10B981' },
     subtitle: { fontSize: 16, color: '#6B7280', marginTop: 8, textAlign: 'center' },
+
     errorContainer: { backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#FCA5A5' },
     errorText: { color: '#EF4444', fontSize: 14, textAlign: 'center', fontWeight: '500' },
+
     inputContainer: { gap: 16 },
+    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 }, // Dodany styl etykiety
     input: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, fontSize: 16, color: '#1F2937' },
+
     // Style dla hasła z ikoną
     passwordContainer: { position: 'relative', justifyContent: 'center' },
     passwordInput: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, paddingRight: 50, fontSize: 16, color: '#1F2937' },
     eyeIcon: { position: 'absolute', right: 18, height: '100%', justifyContent: 'center', alignItems: 'center' },
+
     // Reszta styli
     forgotPasswordButton: { alignSelf: 'flex-end', marginTop: 12, marginBottom: 24 },
     forgotPasswordText: { color: '#10B981', fontSize: 14, fontWeight: '600' },

@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import './Login.css';
 
 const Login = ({ setToken }: { setToken: (token: string) => void }) => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -22,8 +22,8 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
         setIsLoading(true);
 
         try {
-            const response = await axios.post('http://localhost:8080/auth/login', {
-                username: username,
+            const response = await axios.post('http://localhost:8087/api/v1/auth/login', {
+                email: email,
                 password: password
             });
 
@@ -57,8 +57,8 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
                         <input
                             type="text"
                             className="login-input"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             placeholder="Wpisz nazwę użytkownika"
                             required
                             disabled={isLoading} /* Blokujemy pole podczas ładowania */
