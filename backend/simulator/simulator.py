@@ -192,11 +192,11 @@ def main():
     parser = argparse.ArgumentParser(description="Symulator IoT dla parametrów życiowych")
     parser.add_argument('--mode', choices=['realtime', 'batch'], default='realtime', 
                         help="Tryb działania: 'realtime' (HTTP) lub 'batch' (zapis do pliku)")
-    parser.add_argument('--patient-id', type=str, default='patient_123', 
+    parser.add_argument('--patient-id', type=str, default='patient_1234',
                         help="ID pacjenta")
     parser.add_argument('--url', type=str, default='http://localhost:8000/api/vitals',
                         help="Adres URL dla trybu realtime")
-    parser.add_argument('--interval', type=int, default=5, 
+    parser.add_argument('--interval', type=int, default=2,
                         help="Interwał w sekundach między pomiarami")
     parser.add_argument('--days', type=int, default=1, 
                         help="Ile dni wstecz wygenerować w trybie batch")
