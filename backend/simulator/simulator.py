@@ -194,7 +194,7 @@ def main():
                         help="Tryb działania: 'realtime' (HTTP) lub 'batch' (zapis do pliku)")
     parser.add_argument('--patient-id', type=str, default='patient_1234',
                         help="ID pacjenta")
-    parser.add_argument('--url', type=str, default='http://localhost:8084/api/v1/vital-signs',
+    parser.add_argument('--url', type=str, default='http://localhost:8080/api/v1/integration',
                         help="Adres URL dla trybu realtime")
     parser.add_argument('--interval', type=int, default=2,
                         help="Interwał w sekundach między pomiarami")
