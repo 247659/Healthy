@@ -23,7 +23,7 @@ const PatientList = () => {
         if (!token) return;
 
         try {
-            const response = await axios.get('http://localhost:8080/api/patients', {
+            const response = await axios.get('http://localhost:8088/api/v1/patients/allPatients', {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
