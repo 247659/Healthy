@@ -15,18 +15,20 @@ function App() {
     const [token, setToken] = useState<string | null>(() => {
         return localStorage.getItem('access_token');
     });
+    const [refreshToken, setRefreshToken] = useState<string | null>(() => {
+        return localStorage.getItem('refresh_token');
+    })
 
     return (
         <>
-            {/* Wyświetlamy Navbar tylko jeśli użytkownik jest zalogowany */}
-            {token && <Navbar token={token} setToken={setToken} />}
-
+        {token && <Navbar token={token} setToken={setToken} refreshToken={refreshToken} setRefreshToken={setRefreshToken} />}
             <div style={{ padding: '20px' }}>
                 <Routes>
                     {/* Ścieżka Logowania */}
                     <Route
                         path="/"
-                        element={token ? <Navigate to="/patients" /> : <Login setToken={setToken} />}
+                        element={token ? <Navigate to="/patients" /> : <Login setToken={setToken}
+                                                                              setRefreshToken={setRefreshToken}/>}
                     />
 
                     {/* NOWA TRASA: Konfiguracja profilu (chroniona) */}

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
+import {authService} from "../api/authClient.ts";
 
 // Funkcja pomocnicza do dekodowania tokenu JWT (nie wymaga instalacji zewnętrznych bibliotek)
 const getUserIdFromToken = (token: string) => {
@@ -21,7 +22,7 @@ const getUserIdFromToken = (token: string) => {
     }
 };
 
-const Login = ({ setToken }: { setToken: (token: string) => void }) => {
+const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => void, setRefreshToken: (refreshToken: string) => void }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -35,15 +36,15 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
         setIsLoading(true);
 
         try {
-            // 1. Logowanie przez API Gateway (port 8080)
-            const response = await axios.post('http://localhost:8087/api/v1/auth/loginDoctor', {
-                email: email,
-                password: password
-            });
+            const response = await authService.login({ email, password });
 
-            const accessToken = response.data.accessToken || response.data.token;
+            const accessToken = response.accessToken
+            const refreshToken = response.refreshToken
+
             localStorage.setItem('access_token', accessToken);
+            localStorage.setItem('refresh_token', refreshToken);
             setToken(accessToken);
+            setRefreshToken(refreshToken);
 
             // 2. Wyciągamy ID użytkownika z tokenu
             const userId = getUserIdFromToken(accessToken);
@@ -55,7 +56,7 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
             // 3. Sprawdzamy, czy profil lekarza istnieje, używając jego ID
             try {
                 // Pobieramy dane z MedicalStaffController -> @GetMapping("/{id}")
-                await axios.get(`http://localhost:8082/api/v1/staff/${userId}`, {
+                await axios.get(`http://localhost:8080/api/v1/staff/${userId}`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
 
@@ -73,8 +74,16 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
             }
 
         } catch (err) {
-            console.error('Błąd logowania:', err);
-            setError('Nieprawidłowy email lub hasło.');
+            if (axios.isAxiosError(err)) {
+                if (err.status === 401) {
+                    setError("Nieprawidłowy email lub hasło.");
+                } else {
+                    setError("Błąd podczas logowania. Spróbuj ponownie później.");
+                }
+            } else {
+                setError('Brak połączenia z serwerem.');
+            }
+            setError('');
         } finally {
             setIsLoading(false);
         }
