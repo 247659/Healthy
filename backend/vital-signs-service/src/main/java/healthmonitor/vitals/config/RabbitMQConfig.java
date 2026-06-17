@@ -1,4 +1,4 @@
-package healthmonitor.config;
+package healthmonitor.vitals.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
@@ -10,8 +10,8 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String QUEUE_NAME = "vitals.queue";
-    public static final String EXCHANGE_NAME = "vitals.exchange";
-    public static final String ROUTING_KEY = "vitals.routing.key";
+    public static final String EXCHANGE_NAME = "iot.vitals.exchange";
+    public static final String ROUTING_KEY = "vitals.incoming";
 
     @Bean
     public Queue vitalsQueue() {

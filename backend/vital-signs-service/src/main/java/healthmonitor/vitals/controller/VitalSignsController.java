@@ -27,10 +27,4 @@ public class VitalSignsController {
         List<VitalSignsDto> history = vitalsService.getPatientHistory(patientId, from, to);
         return ResponseEntity.ok(history);
     }
-
-    @PostMapping
-    public ResponseEntity<Void> receiveVitals(@Valid @RequestBody VitalSignsDto request) {
-        vitalsService.processAndSaveVitals(request);
-        return ResponseEntity.noContent().build();
-    }
 }

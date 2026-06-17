@@ -5,11 +5,11 @@ import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import healthmonitor.vitals.config.RabbitMQConfig;
 import healthmonitor.vitals.dto.VitalSignsDto;
-import healthmonitor.vitals.messaging.event.VitalsRegisteredEvent;
-import healthmonitor.vitals.messaging.publisher.VitalsEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +24,6 @@ import java.util.Objects;
 public class VitalsServiceImpl implements VitalsService {
 
     private final InfluxDBClient influxDBClient;
-    private final VitalsEventPublisher vitalsEventPublisher;
 
     @Value("${influxdb.bucket}")
     private String bucket;
@@ -88,7 +87,9 @@ public class VitalsServiceImpl implements VitalsService {
     }
 
     @Override
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     public void processAndSaveVitals(VitalSignsDto dto) {
+        log.info("Processing and saving vitals for patient: {}", dto.getPatientId());
         try {
             Instant timestamp = Instant.parse(dto.getTimestamp());
 
@@ -102,18 +103,6 @@ public class VitalsServiceImpl implements VitalsService {
                     .time(timestamp, WritePrecision.NS);
 
             influxDBClient.getWriteApiBlocking().writePoint(bucket, organization, point);
-
-            VitalsRegisteredEvent event = VitalsRegisteredEvent.builder()
-                    .patientId(dto.getPatientId())
-                    .timestamp(timestamp)
-                    .heartRate(dto.getMeasurements().getHeartRate())
-                    .systolicBp(dto.getMeasurements().getBloodPressure().getSystolic())
-                    .diastolicBp(dto.getMeasurements().getBloodPressure().getDiastolic())
-                    .temperature(dto.getMeasurements().getTemperature())
-                    .spO2(dto.getMeasurements().getSpO2())
-                    .build();
-
-            vitalsEventPublisher.publishVitalsRegisteredEvent(event);
 
         } catch (Exception e) {
             log.error("Error during processing vitals: {}", e.getMessage());

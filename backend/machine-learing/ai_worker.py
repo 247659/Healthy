@@ -81,10 +81,18 @@ async def main():
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=10)
 
-        vitals_queue = await channel.declare_queue("vitals.queue", durable=True)
+        exchange = await channel.declare_exchange(
+            "iot.vitals.exchange",
+            aio_pika.ExchangeType.TOPIC,
+            durable=True
+        )
+
+        vitals_queue = await channel.declare_queue("vitals.ml.queue", durable=True)
+        await vitals_queue.bind(exchange, routing_key="vitals.incoming")
+
         await channel.declare_queue("notifications.queue", durable=True)
 
-        print("✅ [AI Worker] Nasłuchuje na 'vitals.queue'...")
+        print("✅ [AI Worker] Nasłuchuje na 'vitals.ml.queue'...")
 
         await vitals_queue.consume(
             partial(on_message, detector=detector, trainer=trainer, channel=channel)
