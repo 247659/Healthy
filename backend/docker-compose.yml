@@ -1,0 +1,43 @@
+services:
+  eureka-server:
+    container_name: eureka-server
+    build: ./eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - backend
+
+  patients:
+    container_name: patients-service
+    build: ./patients
+    ports:
+      - "8088:8088"
+    depends_on:
+      - eureka-server
+    networks:
+      - backend
+      
+  medical-staff:
+    container_name: medical-staff-service
+    build: ./medical-staff
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+    networks:
+      - backend
+      
+  gateway:
+    container_name: gateway
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka-server
+    restart: on-failure
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
