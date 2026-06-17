@@ -1,15 +1,30 @@
 // frontend/web/src/components/Login.tsx
 import { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './Login.css';
+
+// Funkcja pomocnicza do dekodowania tokenu JWT (nie wymaga instalacji zewnętrznych bibliotek)
+const getUserIdFromToken = (token: string) => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const decoded = JSON.parse(jsonPayload);
+        return decoded.sub; // W Keycloak pole 'sub' to UUID użytkownika
+    } catch (e) {
+        console.error("Błąd dekodowania tokenu", e);
+        return null;
+    }
+};
 
 const Login = ({ setToken }: { setToken: (token: string) => void }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-
-    // 1. Dodajemy nowy stan sprawdzający, czy trwa wysyłanie zapytania
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -17,28 +32,50 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
-        // 2. Włączamy stan ładowania tuż przed startem komunikacji
         setIsLoading(true);
 
         try {
+            // 1. Logowanie przez API Gateway (port 8080)
             const response = await axios.post('http://localhost:8087/api/v1/auth/loginDoctor', {
                 email: email,
                 password: password
             });
 
             const accessToken = response.data.accessToken || response.data.token;
-
             localStorage.setItem('access_token', accessToken);
             setToken(accessToken);
 
-            navigate('/patients');
+            // 2. Wyciągamy ID użytkownika z tokenu
+            const userId = getUserIdFromToken(accessToken);
+
+            if (!userId) {
+                throw new Error("Nie udało się pobrać ID użytkownika z tokenu");
+            }
+
+            // 3. Sprawdzamy, czy profil lekarza istnieje, używając jego ID
+            try {
+                // Pobieramy dane z MedicalStaffController -> @GetMapping("/{id}")
+                await axios.get(`http://localhost:8082/api/v1/staff/${userId}`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+
+                // Jeśli profil istnieje (status 200 OK), idziemy do listy pacjentów
+                navigate('/patients');
+            } catch (profileErr: any) {
+                // Jeśli dostaniemy status 404 (Not Found), kierujemy na konfigurację profilu
+                if (profileErr.response && (profileErr.response.status === 404 || profileErr.response.status === 400)) {
+                    navigate('/profile-setup');
+                } else {
+                    console.error('Błąd pobierania profilu:', profileErr);
+                    // W razie innego błędu (np. 500) awaryjnie wpuszczamy do aplikacji
+                    navigate('/patients');
+                }
+            }
+
         } catch (err) {
             console.error('Błąd logowania:', err);
             setError('Nieprawidłowy email lub hasło.');
         } finally {
-            // 3. Blok finally WYKONA SIĘ ZAWSZE - niezależnie czy logowanie się uda, czy wyrzuci błąd.
-            // Dzięki temu przycisk nie "zawiśnie" w stanie ładowania w przypadku błędu.
             setIsLoading(false);
         }
     };
@@ -61,7 +98,7 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Wpisz nazwę użytkownika"
                             required
-                            disabled={isLoading} /* Blokujemy pole podczas ładowania */
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -74,11 +111,10 @@ const Login = ({ setToken }: { setToken: (token: string) => void }) => {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
                             required
-                            disabled={isLoading} /* Blokujemy pole podczas ładowania */
+                            disabled={isLoading}
                         />
                     </div>
 
-                    {/* 4. Modyfikujemy przycisk na podstawie stanu isLoading */}
                     <button
                         type="submit"
                         className="login-button"

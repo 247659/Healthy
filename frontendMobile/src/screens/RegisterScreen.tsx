@@ -33,6 +33,7 @@ const EyeOffIcon = ({ color = "#9CA3AF", size = 24 }: IconProps) => (
     </Svg>
 );
 
+
 interface RegisterScreenProps {
     onNavigateToLogin: () => void;
 }

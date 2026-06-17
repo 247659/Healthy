@@ -4,6 +4,8 @@ import { useState } from 'react';
 import PatientList from './components/PatientList';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
+import ProfileSetup from './components/ProfileSetup'; // <-- DODANY IMPORT
+
 // Jeśli masz zrobioną rejestrację, możesz ją tu odkomentować:
 // import Register from './components/Register';
 
@@ -16,13 +18,21 @@ function App() {
 
     return (
         <>
-            <Navbar token={token} setToken={setToken} />
+            {/* Wyświetlamy Navbar tylko jeśli użytkownik jest zalogowany */}
+            {token && <Navbar token={token} setToken={setToken} />}
+
             <div style={{ padding: '20px' }}>
                 <Routes>
                     {/* Ścieżka Logowania */}
                     <Route
                         path="/"
                         element={token ? <Navigate to="/patients" /> : <Login setToken={setToken} />}
+                    />
+
+                    {/* NOWA TRASA: Konfiguracja profilu (chroniona) */}
+                    <Route
+                        path="/profile-setup"
+                        element={token ? <ProfileSetup /> : <Navigate to="/" />}
                     />
 
                     {/* Odkomentuj poniższe, jeśli masz komponent Register */}
@@ -36,6 +46,9 @@ function App() {
                         path="/patients"
                         element={token ? <PatientList /> : <Navigate to="/" />}
                     />
+
+                    {/* Catch-all: jeśli użytkownik wpisze zły adres, wracamy do głównego widoku */}
+                    <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
             </div>
         </>
