@@ -1,11 +1,11 @@
-package healthmonitor.controller;
+package healthmonitor.auth.controller;
 
-import healthmonitor.model.dto.LoginRequestDto;
-import healthmonitor.model.dto.LogoutRequestDto;
-import healthmonitor.model.dto.PatientRegistrationDto;
-import healthmonitor.model.dto.RefreshTokenRequestDto;
-import healthmonitor.model.dto.TokenResponseDto;
-import healthmonitor.service.AuthService;
+import healthmonitor.auth.model.dto.LoginRequestDto;
+import healthmonitor.auth.model.dto.LogoutRequestDto;
+import healthmonitor.auth.model.dto.PatientRegistrationDto;
+import healthmonitor.auth.model.dto.RefreshTokenRequestDto;
+import healthmonitor.auth.model.dto.TokenResponseDto;
+import healthmonitor.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package healthmonitor.model.dto;
+package healthmonitor.auth.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
