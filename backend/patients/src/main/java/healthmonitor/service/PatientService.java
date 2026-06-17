@@ -10,6 +10,8 @@ public interface PatientService {
 
     List<PatientDto> getAllPatients();
 
+    PatientDto save(PatientDto request);
+
     @Transactional
     PatientDto updatePatient(String id, PatientDto updateRequest);
 }

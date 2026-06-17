@@ -44,7 +44,7 @@ public class PatientClient {
         }
 
         return webClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/api/v1/patients").build())
+                .uri(uriBuilder -> uriBuilder.path("/api/v1/patients/allPatients").build())
                 .retrieve()
                 .onStatus(
                         HttpStatusCode::is5xxServerError,

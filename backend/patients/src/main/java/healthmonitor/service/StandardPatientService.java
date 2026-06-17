@@ -36,6 +36,14 @@ public class StandardPatientService implements PatientService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public PatientDto save(PatientDto request) {
+        Patient patient = patientMapper.toEntity(request);
+        Patient savedPatient = patientRepository.save(patient);
+        return patientMapper.toDto(savedPatient);
+    }
+
     @Transactional
     @Override
     public PatientDto updatePatient(String id, PatientDto updateRequest) {
