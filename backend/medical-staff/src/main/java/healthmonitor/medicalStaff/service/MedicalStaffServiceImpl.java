@@ -1,10 +1,13 @@
 package healthmonitor.medicalStaff.service;
 
+import healthmonitor.client.PatientClient;
+import healthmonitor.client.PatientResponse;
 import healthmonitor.medicalStaff.mapper.MedicalStaffMapper;
 import healthmonitor.medicalStaff.model.MedicalStaff;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.repository.MedicalStaffRepository;
+import healthmonitor.medicalStaff.model.PatientAssignment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -13,7 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +27,7 @@ import java.util.UUID;
 public class MedicalStaffServiceImpl implements MedicalStaffService {
     private final MedicalStaffRepository medicalStaffRepository;
     private final MedicalStaffMapper medicalStaffMapper;
+    private final PatientClient patientClient;
 
     @Override
     public List<MedicalStaffResponse> getAll() {
@@ -59,9 +65,38 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
         return medicalStaffMapper.toResponse(medicalStaff);
     }
 
-    private MedicalStaff getEntity(UUID id) {
-        return medicalStaffRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
+    @Override
+    @Transactional
+    public void assignPatient(UUID id, String patientId) {
+        patientClient.getPatient(patientId);
+        MedicalStaff medicalStaff = getEntity(id);
+        boolean alreadyAssigned = medicalStaff.getPatientAssignments().stream()
+                .anyMatch(a -> a.getPatientId().equals(patientId));
 
+        if (alreadyAssigned) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Patient is already assigned");
+        }
+
+        PatientAssignment patientAssignment = new PatientAssignment();
+        patientAssignment.setMedicalStaff(medicalStaff);
+        patientAssignment.setPatientId(patientId);
+        medicalStaff.addPatientAssignment(patientAssignment);
+        medicalStaffRepository.save(medicalStaff);
+    }
+
+    @Override
+    public List<PatientResponse> getPatientsInfo(UUID id) {
+        MedicalStaff medicalStaff = medicalStaffRepository.findWithPatientAssignmentsById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
+        Set<String> patientIds = medicalStaff.getPatientAssignments().stream()
+                .map(PatientAssignment::getPatientId)
+                .collect(Collectors.toSet());
+
+        return patientClient.getPatients(patientIds);
+    }
+
+    private MedicalStaff getEntity(UUID id) {
+        return medicalStaffRepository.findWithSpecializationById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
     }
 }

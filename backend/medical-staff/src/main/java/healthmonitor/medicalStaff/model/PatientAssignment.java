@@ -1,12 +1,13 @@
-package healthmonitor.patientAssignment.model;
+package healthmonitor.medicalStaff.model;
 
-import healthmonitor.medicalStaff.model.MedicalStaff;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -26,4 +27,7 @@ public class PatientAssignment {
 
     @Column(nullable = false)
     private String patientId;
+
+    @CreatedDate
+    private LocalDateTime createdAt;
 }

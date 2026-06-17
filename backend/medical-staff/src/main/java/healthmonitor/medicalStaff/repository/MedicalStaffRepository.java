@@ -1,6 +1,7 @@
 package healthmonitor.medicalStaff.repository;
 
 import healthmonitor.medicalStaff.model.MedicalStaff;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -15,7 +16,9 @@ public interface MedicalStaffRepository extends JpaRepository<MedicalStaff, UUID
     @EntityGraph(attributePaths = {"specializations"})
     List<MedicalStaff> findAll();
 
-    @Override
     @EntityGraph(attributePaths = {"specializations"})
-    Optional<MedicalStaff> findById(UUID id);
+    Optional<MedicalStaff> findWithSpecializationById(UUID id);
+
+    @EntityGraph(attributePaths = {"patientAssignments"})
+    Optional<MedicalStaff> findWithPatientAssignmentsById(UUID id);
 }

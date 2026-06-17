@@ -1,6 +1,5 @@
 package healthmonitor.medicalStaff.model;
 
-import healthmonitor.patientAssignment.model.PatientAssignment;
 import jakarta.persistence.*;
 import lombok.*;
 

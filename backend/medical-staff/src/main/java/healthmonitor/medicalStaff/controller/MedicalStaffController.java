@@ -1,8 +1,10 @@
 package healthmonitor.medicalStaff.controller;
 
+import healthmonitor.client.PatientResponse;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.service.MedicalStaffService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +30,7 @@ public class MedicalStaffController {
     }
 
     @PostMapping
-    public ResponseEntity<MedicalStaffResponse> save(@RequestBody MedicalStaffRequest request) {
+    public ResponseEntity<MedicalStaffResponse> save(@Valid @RequestBody MedicalStaffRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(medicalStaffService.save(request));
     }
 
@@ -39,7 +41,18 @@ public class MedicalStaffController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MedicalStaffResponse> update(@PathVariable UUID id, @RequestBody MedicalStaffRequest request) {
+    public ResponseEntity<MedicalStaffResponse> update(@PathVariable UUID id, @Valid @RequestBody MedicalStaffRequest request) {
         return ResponseEntity.ok(medicalStaffService.update(id, request));
+    }
+
+    @PostMapping("/{id}/assign/{patientId}")
+    public ResponseEntity<Void> assignPatient(@PathVariable UUID id, @PathVariable String patientId) {
+        medicalStaffService.assignPatient(id, patientId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/patients")
+    public ResponseEntity<List<PatientResponse>> getAllPatients(@PathVariable UUID id) {
+        return ResponseEntity.ok(medicalStaffService.getPatientsInfo(id));
     }
 }
