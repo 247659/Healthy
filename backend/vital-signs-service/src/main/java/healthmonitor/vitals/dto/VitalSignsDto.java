@@ -1,4 +1,4 @@
-package healthmonitor.dto;
+package healthmonitor.vitals.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
