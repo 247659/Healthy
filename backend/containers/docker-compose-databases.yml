@@ -2,58 +2,39 @@ version: '3.8'
 name: HealthMonitor IoT - Databases
 
 services:
-  # 1. Baza dla Patient Service
-  patient_db:
-    image: postgres:latest
-    container_name: patient_db
+  postgres:
+    container_name: healthy_postgres
+    image: postgres:17
     environment:
-      POSTGRES_USER: user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: patient_db
-    ports:
-      - "5432:5432"
+      PGDATA: /data/postgres
     volumes:
-      - patient_db_data:/var/lib/postgresql
+      - postgres:/data/postgres
+      - ./db/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
 
-  # 2. Baza dla Medical Staff Service
-  staff_db:
-    image: postgres:latest
-    container_name: staff_db
+  pgadmin:
+    container_name: healthy_pgadmin
+    image: dpage/pgadmin4:8.14
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: staff_db
-    ports:
-      - "5433:5432"
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     volumes:
-      - staff_db_data:/var/lib/postgresql
-
-  # 3. Baza dla Alert & Notification Service
-  alert_db:
-    image: postgres:latest
-    container_name: alert_db
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: alert_db
+      - pgadmin:/var/lib/pgadmin
+      - ./db/docker_pgadmin_servers.json:/pgadmin4/servers.json
     ports:
-      - "5434:5432"
-    volumes:
-      - alert_db_data:/var/lib/postgresql
-
-  # 4. Baza dla Auth Service (Keycloak) + Keycloak Server
-  keycloak_db:
-    image: postgres:latest
-    container_name: keycloak_db
-    environment:
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: keycloak_password
-      POSTGRES_DB: keycloak_db
-    ports:
-      - "5435:5432"
-    volumes:
-      - keycloak_db_data:/var/lib/postgresql
-
+      - "15433:80"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/bin/echo 'postgres:5432:*:postgres:password' > /tmp/pgpassfile && chmod 600 /tmp/pgpassfile && /entrypoint.sh"
+    restart: unless-stopped
+    
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: keycloak-server
@@ -61,9 +42,9 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak_db
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: keycloak_password
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: password
     command: start-dev --import-realm
     ports:
       - "9090:8080"
@@ -96,32 +77,8 @@ services:
     ports:
       - "5672:5672"   # Port główny do komunikacji mikroserwisów (AMQP)
       - "15672:15672" # Port do panelu zarządzania w przeglądarce
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
 
-    # 7. Interfejs graficzny dla PostgreSQL (pgAdmin)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: adminpassword
-    ports:
-      - "5050:80"
-    depends_on:
-      - patient_db
-      - staff_db
-      - alert_db
-      - keycloak_db
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-
-# Deklaracja wolumenów zapewniająca, że dane przetrwają restarty kontenerów
 volumes:
-  patient_db_data:
-  staff_db_data:
-  alert_db_data:
-  keycloak_db_data:
+  postgres:
+  pgadmin:
   vital_signs_data:
-  rabbitmq_data:
-  pgadmin_data:
