@@ -11,8 +11,9 @@ import {
     ScrollView,
 } from 'react-native';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
-
-const AUTH_SERVICE_URL = 'http://10.0.2.2:8087/api/v1/auth';
+import {PatientRegistrationRequest} from "../types/auth.ts";
+import {authService} from "../api/authClient.ts";
+import axios from "axios";
 
 interface IconProps {
     color?: string;
@@ -57,10 +58,58 @@ export const RegisterScreen = ({ onNavigateToLogin }: RegisterScreenProps) => {
         setErrorMessage(null);
         setSuccessMessage(null);
 
-        if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        const trimmedFirstName = firstName.trim();
+        const trimmedLastName = lastName.trim();
+        const trimmedEmail = email.trim();
+
+        // 1. Sprawdzenie, czy pola nie są puste
+        if (!trimmedFirstName || !trimmedLastName || !trimmedEmail || !password || !confirmPassword) {
             setErrorMessage('Wypełnij wszystkie pola formularza.');
             return;
         }
+
+        // Wyrażenia regularne zgodne z DTO
+        const nameRegex = /^[A-Za-zÀ-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż\- ]+$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#\-])[A-Za-z\d@$!%*?&._#\-]{8,64}$/;
+
+        // 2. Walidacja imienia
+        if (trimmedFirstName.length < 2 || trimmedFirstName.length > 50) {
+            setErrorMessage('Imię musi mieć od 2 do 50 znaków.');
+            return;
+        }
+        if (!nameRegex.test(trimmedFirstName)) {
+            setErrorMessage('Imię może zawierać tylko litery, spacje i myślniki.');
+            return;
+        }
+
+        // 3. Walidacja nazwiska
+        if (trimmedLastName.length < 2 || trimmedLastName.length > 50) {
+            setErrorMessage('Nazwisko musi mieć od 2 do 50 znaków.');
+            return;
+        }
+        if (!nameRegex.test(trimmedLastName)) {
+            setErrorMessage('Nazwisko może zawierać tylko litery, spacje i myślniki.');
+            return;
+        }
+
+        // 4. Walidacja e-maila
+        if (!emailRegex.test(trimmedEmail)) {
+            setErrorMessage('Nieprawidłowy format adresu e-mail.');
+            return;
+        }
+
+        // 5. Walidacja hasła
+        if (password.length < 8 || password.length > 64) {
+            setErrorMessage('Hasło musi mieć od 8 do 64 znaków.');
+            return;
+        }
+        if (!passwordRegex.test(password)) {
+            setErrorMessage('Hasło musi zawierać co najmniej jedną wielką i małą literę, cyfrę oraz znak specjalny.');
+            return;
+        }
+
+        // 6. Potwierdzenie hasła
         if (password !== confirmPassword) {
             setErrorMessage('Podane hasła nie są identyczne.');
             return;
@@ -69,22 +118,14 @@ export const RegisterScreen = ({ onNavigateToLogin }: RegisterScreenProps) => {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${AUTH_SERVICE_URL}/register/patient`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    firstName: firstName.trim(),
-                    lastName: lastName.trim(),
-                    email: email.trim(),
-                    password
-                }),
-            });
+            const requestData: PatientRegistrationRequest = {
+              firstName: trimmedFirstName,
+              lastName: trimmedLastName,
+              email: trimmedEmail,
+              password: password,
+            };
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Wystąpił błąd podczas rejestracji.');
-            }
+            await authService.registerPatient(requestData);
 
             // Pokazujemy komunikat sukcesu i czyścimy formularz
             setSuccessMessage('Konto utworzone pomyślnie!');
@@ -100,7 +141,19 @@ export const RegisterScreen = ({ onNavigateToLogin }: RegisterScreenProps) => {
             }, 2000);
 
         } catch (error: any) {
-            setErrorMessage(error.message || 'Brak połączenia z serwerem.');
+            if (axios.isAxiosError(error)) {
+
+              if (error.response?.status === 409) {
+                setErrorMessage('Użytkownik z tym adresem e-mail już istnieje.');
+              } else {
+                  setErrorMessage('Wystąpił błąd podczas rejestracji. Spróbuj ponownie.');
+              }
+            } else {
+              setErrorMessage(
+                'Brak połączenia z serwerem lub nieoczekiwany błąd.',
+              );
+            }
+
         } finally {
             setIsLoading(false);
         }
@@ -138,7 +191,7 @@ export const RegisterScreen = ({ onNavigateToLogin }: RegisterScreenProps) => {
                             placeholderTextColor="#9CA3AF"
                             value={firstName}
                             onChangeText={setFirstName}
-                            editable={!isLoading && !successMessage} // Blokujemy edycję po udanej rejestracji
+                            editable={!isLoading && !successMessage}
                         />
                     </View>
 
@@ -283,7 +336,7 @@ const styles = StyleSheet.create({
     },
 
     inputContainer: { gap: 16, marginBottom: 32 },
-    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 }, // Styl etykiet
+    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 },
     input: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, fontSize: 16, color: '#1F2937' },
 
     passwordContainer: {

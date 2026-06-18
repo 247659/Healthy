@@ -1,12 +1,15 @@
-package healthmonitor.service;
+package healthmonitor.auth.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import healthmonitor.config.RabbitMQConfig;
-import healthmonitor.model.dto.TokenResponseDto;
-import healthmonitor.model.UserRegisteredEvent;
+import healthmonitor.auth.config.RabbitMQConfig;
+import healthmonitor.auth.exception.AuthException;
+import healthmonitor.auth.exception.ErrorCode;
+import healthmonitor.auth.model.dto.TokenResponseDto;
+import healthmonitor.auth.model.UserRegisteredEvent;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class KeycloakUserService {
 
@@ -43,6 +47,7 @@ public class KeycloakUserService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
 
     private final String PUBLIC_CLIENT_ID = "health-api";
 
@@ -62,7 +67,7 @@ public class KeycloakUserService {
                 .users().searchByEmail(email, true);
 
         if (!existingUsers.isEmpty()) {
-            throw new RuntimeException("A user with email address " + email + " already exists!");
+            throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         UserRepresentation user = new UserRepresentation();
@@ -83,71 +88,15 @@ public class KeycloakUserService {
         }
     }
 
-    public TokenResponseDto login(String email, String password) {
-        String tokenEndpoint = serverUrl + "/realms/" + realm + "/protocol/openid-connect/token";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("client_id", PUBLIC_CLIENT_ID);
-        map.add("username", email);
-        map.add("password", password);
-        map.add("grant_type", "password");
-
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
-
-        try {
-            // Pobranie tokenów z Keycloaka
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenEndpoint, request, Map.class);
-            Map<String, Object> body = response.getBody();
-
-            String accessToken = (String) body.get("access_token");
-            String refreshToken = (String) body.get("refresh_token");
-
-            // --- Weryfikacja roli w tokenie JWT ---
-            String[] chunks = accessToken.split("\\.");
-            if (chunks.length > 1) {
-                // Rozkodowanie sekcji payload tokenu
-                String payload = new String(Base64.getUrlDecoder().decode(chunks[1]));
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode payloadNode = mapper.readTree(payload);
-
-                boolean hasPatientRole = false;
-
-                // Sprawdzenie ról przypisanych na poziomie Realm (realm_access.roles)
-                if (payloadNode.has("realm_access") && payloadNode.get("realm_access").has("roles")) {
-                    for (JsonNode roleNode : payloadNode.get("realm_access").get("roles")) {
-                        if ("PATIENT".equalsIgnoreCase(roleNode.asText())) {
-                            hasPatientRole = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Jeżeli nie znaleziono roli PATIENT, odrzucamy żądanie
-                if (!hasPatientRole) {
-                    // Opcjonalnie: wywołanie logout() dla uzyskanego sesji w Keycloak,
-                    // ale przerwanie w tym miejscu i tak nie zwróci tokenów do klienta.
-                    throw new RuntimeException("Brak dostępu: Użytkownik nie posiada roli PATIENT.");
-                }
-            }
-            // ----------------------------------------
-
-            return new TokenResponseDto(accessToken, refreshToken);
-
-        } catch (RuntimeException e) {
-            // Przepuszczamy nasz własny wyjątek z komunikatem o braku uprawnień
-            if (e.getMessage().contains("Brak dostępu")) {
-                throw e;
-            }
-            throw new RuntimeException("Incorrect login or password");
-        } catch (Exception e) {
-            throw new RuntimeException("Incorrect login or password");
-        }
+    public TokenResponseDto loginPatient(String email, String password) {
+        return login(email, password, "PATIENT");
     }
 
     public TokenResponseDto loginDoctor(String email, String password) {
+        return login(email, password, "DOCTOR");
+    }
+
+    private TokenResponseDto login(String email, String password, String requiredRole) {
         String tokenEndpoint = serverUrl + "/realms/" + realm + "/protocol/openid-connect/token";
 
         HttpHeaders headers = new HttpHeaders();
@@ -162,51 +111,46 @@ public class KeycloakUserService {
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
         try {
-            // Pobranie tokenów z Keycloaka
             ResponseEntity<Map> response = restTemplate.postForEntity(tokenEndpoint, request, Map.class);
             Map<String, Object> body = response.getBody();
 
             String accessToken = (String) body.get("access_token");
             String refreshToken = (String) body.get("refresh_token");
 
-            // --- Weryfikacja roli DOCTOR w tokenie JWT ---
-            String[] chunks = accessToken.split("\\.");
-            if (chunks.length > 1) {
-                // Rozkodowanie sekcji payload tokenu
-                String payload = new String(Base64.getUrlDecoder().decode(chunks[1]));
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode payloadNode = mapper.readTree(payload);
-
-                boolean hasDoctorRole = false;
-
-                // Sprawdzenie ról przypisanych na poziomie Realm (realm_access.roles)
-                if (payloadNode.has("realm_access") && payloadNode.get("realm_access").has("roles")) {
-                    for (JsonNode roleNode : payloadNode.get("realm_access").get("roles")) {
-                        if ("DOCTOR".equalsIgnoreCase(roleNode.asText())) {
-                            hasDoctorRole = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Jeżeli nie znaleziono roli DOCTOR, odrzucamy żądanie
-                if (!hasDoctorRole) {
-                    throw new RuntimeException("Brak dostępu: Użytkownik nie posiada roli DOCTOR.");
-                }
-            }
-            // ---------------------------------------------
+            validateRole(accessToken, requiredRole);
 
             return new TokenResponseDto(accessToken, refreshToken);
 
         } catch (RuntimeException e) {
-            // Przepuszczamy informację o braku roli do controllera
             if (e.getMessage().contains("Brak dostępu")) {
                 throw e;
             }
-            throw new RuntimeException("Incorrect login or password");
+            throw new AuthException(ErrorCode.INCORRECT_CREDENTIALS);
         } catch (Exception e) {
-            throw new RuntimeException("Incorrect login or password");
+            throw new AuthException(ErrorCode.INCORRECT_CREDENTIALS);
         }
+    }
+
+    private void validateRole(String accessToken, String requiredRole) throws Exception {
+
+        String[] chunks = accessToken.split("\\.");
+        if (chunks.length <= 1) {
+            throw new AuthException(ErrorCode.ACCESS_DENIED);
+        }
+
+        String payload = new String(Base64.getUrlDecoder().decode(chunks[1]));
+        JsonNode payloadNode = objectMapper.readTree(payload);
+
+        if (payloadNode.has("realm_access")
+                && payloadNode.get("realm_access").has("roles")) {
+
+            for (JsonNode role : payloadNode.get("realm_access").get("roles")) {
+                if (requiredRole.equalsIgnoreCase(role.asText())) {
+                    return;
+                }
+            }
+        }
+        throw new AuthException(ErrorCode.INCORRECT_ROLE);
     }
 
     public void logout(String refreshToken) {
@@ -224,7 +168,7 @@ public class KeycloakUserService {
         try {
             restTemplate.postForEntity(logoutEndpoint, request, String.class);
         } catch (Exception e) {
-            throw new RuntimeException("Error while logging out");
+            throw new AuthException(ErrorCode.INTERVAL_SERVER_ERROR);
         }
     }
 
@@ -246,7 +190,8 @@ public class KeycloakUserService {
 
             rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EXCHANGE, "user.registered.patient", event);
         } else {
-            throw new RuntimeException("Error while creating user in Keycloak: " + response.getStatusInfo().getReasonPhrase());
+            log.error("Error while creating user in Keycloak: {}", response.getStatusInfo().getReasonPhrase());
+            throw new AuthException(ErrorCode.INTERVAL_SERVER_ERROR);
         }
     }
 
@@ -272,7 +217,7 @@ public class KeycloakUserService {
                     (String) body.get("refresh_token")
             );
         } catch (Exception e) {
-            throw new RuntimeException("Your session has expired. Please log in again.");
+            throw new AuthException(ErrorCode.TOKEN_EXPIRED);
         }
     }
 }

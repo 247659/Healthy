@@ -10,6 +10,9 @@ import {
     Platform,
 } from 'react-native';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
+import { authService } from '../api/authClient.ts';
+import { LoginRequest, Token } from '../types/auth.ts';
+import axios from 'axios';
 
 // --- IKONY ---
 interface IconProps { color?: string; size?: number; }
@@ -26,17 +29,15 @@ const EyeOffIcon = ({ color = "#9CA3AF", size = 24 }: IconProps) => (
     </Svg>
 );
 
-const AUTH_SERVICE_URL = 'http://10.0.2.2:8087/api/v1/auth';
-
 interface LoginScreenProps {
     onNavigateToRegister: () => void;
-    onLoginSuccess: (token: string) => void;
+    onLoginSuccess: (token: Token) => void;
 }
 
 export const LoginScreen = ({ onNavigateToRegister, onLoginSuccess }: LoginScreenProps) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false); // Stan widoczności hasła
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -48,25 +49,27 @@ export const LoginScreen = ({ onNavigateToRegister, onLoginSuccess }: LoginScree
         }
         setIsLoading(true);
         try {
-            const response = await fetch(`${AUTH_SERVICE_URL}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email.trim(), password }),
-            });
-            const data = await response.json();
+          const loginData: LoginRequest = {
+            email: email,
+            password: password,
+          };
 
-            // Logika dostosowana do struktury odpowiedzi z serwera:
-            if (response.ok && data.tokens?.accessToken) {
-                onLoginSuccess(data.tokens.accessToken);
-            } else if (response.ok && data.accessToken) {
-                onLoginSuccess(data.accessToken);
-            } else {
-                throw new Error(data.message || 'Nieprawidłowe dane logowania.');
-            }
+          const response = await authService.login(loginData);
+          onLoginSuccess(response);
+
         } catch (error: any) {
-            setErrorMessage(error.message || 'Brak połączenia z serwerem.');
+          if (axios.isAxiosError(error)) {
+            if (error.response?.status === 401) {
+              setErrorMessage("Nieprawidłowy email lub hasło");
+            } else {
+              setErrorMessage("Błąd podczas logowania. Spróbuj ponownie później.");
+            }
+          } else {
+            setErrorMessage('Brak połączenia z serwerem.');
+          }
+
         } finally {
-            setIsLoading(false);
+          setIsLoading(false);
         }
     };
 

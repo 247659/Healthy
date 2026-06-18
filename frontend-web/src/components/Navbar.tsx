@@ -1,18 +1,24 @@
 // frontend/web/src/components/Navbar.tsx
 import { useNavigate } from 'react-router-dom';
 import './Navbar.css';
+import {authService} from "../api/authClient.ts";
 
 interface NavbarProps {
     token: string | null;
     setToken: (token: string | null) => void;
+    refreshToken: string | null;
+    setRefreshToken: (refreshToken: string | null) => void;
 }
 
-const Navbar = ({ token, setToken }: NavbarProps) => {
+const Navbar = ({ token, setToken, refreshToken, setRefreshToken }: NavbarProps) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
+        authService.logout(refreshToken);
         localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         setToken(null);
+        setRefreshToken(null);
         navigate('/');
     };
 

@@ -7,6 +7,7 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ProfileSetupScreen } from './src/screens/ProfileSetupScreen';
 import { DashboardScreen } from "./src/screens/DashboardScreen";
+import { authService } from './src/api/authClient.ts';
 
 function App() {
     const isDarkMode = useColorScheme() === 'dark';
@@ -22,13 +23,16 @@ function AppContent() {
     const safeAreaInsets = useSafeAreaInsets();
     const [currentScreen, setCurrentScreen] = useState<'login' | 'register'>('login');
     const [userToken, setUserToken] = useState<string | null>(null);
+    const [refreshToken, setRefreshToken] = useState<string | null>(null);
     const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
     const [patientData, setPatientData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     // --- FUNKCJA WYLOGOWANIA ---
     const handleLogout = () => {
+        authService.logout(refreshToken);
         setUserToken(null);
+        setRefreshToken(null);
         setIsProfileComplete(null);
         setPatientData(null); // Czyścimy dane pacjenta przy wylogowaniu
     };
@@ -41,7 +45,7 @@ function AppContent() {
 
             console.log("Zdekodowane ID użytkownika:", userId);
 
-            const response = await fetch(`http://10.0.2.2:8088/api/v1/patients/${userId}`, {
+            const response = await fetch(`http://10.0.2.2:8080/api/v1/patients/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -115,8 +119,9 @@ function AppContent() {
                 <LoginScreen
                     onNavigateToRegister={() => setCurrentScreen('register')}
                     onLoginSuccess={(token) => {
-                        setUserToken(token);
-                        checkProfile(token);
+                        setUserToken(token.accessToken);
+                        checkProfile(token.accessToken);
+                        setRefreshToken(token.refreshToken);
                     }}
                 />
             ) : (

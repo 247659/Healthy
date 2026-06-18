@@ -1,4 +1,4 @@
-package healthmonitor.config;
+package healthmonitor.auth.config;
 
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
