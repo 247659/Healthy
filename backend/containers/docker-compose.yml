@@ -198,6 +198,21 @@ services:
       - postgres
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      
+  notification:
+    container_name: notification-service
+    build: ../notification
+    ports:
+      - "8085:8085"
+    networks:
+      - backend
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
 
 volumes:
   postgres:
