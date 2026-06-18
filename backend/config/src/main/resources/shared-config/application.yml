@@ -20,7 +20,7 @@ management:
     metrics:
       export:
         enabled: false
-    traces:
+    tracing:
       export:
         enabled: false
 
