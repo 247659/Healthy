@@ -82,10 +82,7 @@ public class KeycloakUserService {
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(password);
         user.setCredentials(Collections.singletonList(credential));
-
-        if (role.equals("patient")) {
-            registerPatient(user);
-        }
+        register(user, role);
     }
 
     public TokenResponseDto loginPatient(String email, String password) {
@@ -172,23 +169,21 @@ public class KeycloakUserService {
         }
     }
 
-    private void registerPatient(UserRepresentation user) {
+    private void register(UserRepresentation user, String role) {
         Keycloak keycloakClient = getKeycloakClient();
         Response response = keycloakClient.realm(realm).users().create(user);
-
         if (response.getStatus() == 201) {
             String path = response.getLocation().getPath();
-            String keycloakUserId = path.substring(path.lastIndexOf('/') + 1);
-
-            RoleRepresentation patientRole = keycloakClient.realm(realm).roles().get("PATIENT").toRepresentation();
+            String keycloakUserId = path.substring(path.lastIndexOf("/") + 1);
+            RoleRepresentation roleRepresentation = keycloakClient.realm(realm).roles().get(role.toUpperCase()).toRepresentation();
 
             keycloakClient.realm(realm).users().get(keycloakUserId).roles().realmLevel()
-                    .add(Collections.singletonList(patientRole));
+                    .add(Collections.singletonList(roleRepresentation));
             UserRegisteredEvent event = new UserRegisteredEvent(
                     keycloakUserId, user.getEmail(), user.getFirstName(), user.getLastName()
             );
 
-            rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EXCHANGE, "user.registered.patient", event);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EXCHANGE, "user.registered." + role, event);
         } else {
             log.error("Error while creating user in Keycloak: {}", response.getStatusInfo().getReasonPhrase());
             throw new AuthException(ErrorCode.INTERVAL_SERVER_ERROR);

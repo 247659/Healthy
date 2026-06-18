@@ -19,15 +19,18 @@ public class MedicalStaff {
     private UUID id;
 
     @Column(nullable = false)
+    private String keycloakUserId;
+
+    @Column(nullable = false)
     private String firstName;
 
     @Column(nullable = false)
     private String lastName;
 
-    @Column(nullable = false)
+    @Column(unique = true)
     private String phoneNumber;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String licenseNumber;
 
     @ElementCollection

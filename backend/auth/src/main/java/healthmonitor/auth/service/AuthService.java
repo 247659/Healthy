@@ -9,6 +9,8 @@ import healthmonitor.auth.model.dto.TokenResponseDto;
 public interface AuthService {
     void registerPatient(PatientRegistrationDto patientDto);
 
+    void registerDoctor(PatientRegistrationDto doctorDto);
+
     TokenResponseDto login(LoginRequestDto loginRequest);
 
     TokenResponseDto loginDoctor(LoginRequestDto loginRequest);

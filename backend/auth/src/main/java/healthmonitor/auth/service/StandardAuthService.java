@@ -14,10 +14,16 @@ public class StandardAuthService implements AuthService {
 
     private final KeycloakUserService keycloakUserService;
     static private final String PATIENT_ROLE = "patient";
+    static private final String DOCTOR_ROLE = "doctor";
 
     @Override
     public void registerPatient(PatientRegistrationDto patientDto) {
         keycloakUserService.createUserInKeycloak(patientDto.getEmail(), patientDto.getPassword(), patientDto.getFirstName(), patientDto.getLastName(), PATIENT_ROLE);
+    }
+
+    @Override
+    public void registerDoctor(PatientRegistrationDto doctorDto) {
+        keycloakUserService.createUserInKeycloak(doctorDto.getEmail(), doctorDto.getPassword(), doctorDto.getFirstName(), doctorDto.getLastName(), DOCTOR_ROLE);
     }
 
     @Override

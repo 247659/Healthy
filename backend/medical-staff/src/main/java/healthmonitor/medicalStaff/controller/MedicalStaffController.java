@@ -5,7 +5,6 @@ import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.service.MedicalStaffService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,11 +26,6 @@ public class MedicalStaffController {
     @GetMapping("/{id}")
     public ResponseEntity<MedicalStaffResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(medicalStaffService.getById(id));
-    }
-
-    @PostMapping
-    public ResponseEntity<MedicalStaffResponse> save(@Valid @RequestBody MedicalStaffRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(medicalStaffService.save(request));
     }
 
     @DeleteMapping("/{id}")

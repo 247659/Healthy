@@ -25,7 +25,13 @@ public class AuthController {
         authService.registerPatient(patientDto);
         TokenResponseDto login = authService.login(new LoginRequestDto(patientDto.getEmail(), patientDto.getPassword()));
         return ResponseEntity.status(HttpStatus.CREATED).body(login);
+    }
 
+    @PostMapping("/register/doctor")
+    public ResponseEntity<TokenResponseDto> registerDoctor(@Valid @RequestBody PatientRegistrationDto doctorDto) {
+        authService.registerDoctor(doctorDto);
+        TokenResponseDto login = authService.loginDoctor(new LoginRequestDto(doctorDto.getEmail(), doctorDto.getPassword()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(login);
     }
 
     @PostMapping("/login")
