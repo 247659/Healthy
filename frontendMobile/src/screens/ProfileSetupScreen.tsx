@@ -13,7 +13,7 @@ import {
 import DatePicker from 'react-native-date-picker';
 import Svg, { Path, Polyline, Line } from 'react-native-svg';
 
-const API_URL = 'http://10.0.2.2:8088'; // Zmień na 8088 jeśli tego używasz
+const API_URL = 'http://10.0.2.2:8080'; // Zmień na 8088 jeśli tego używasz
 
 // --- IKONA WYLOGOWANIA Z DASHBOARDU ---
 const LogoutIcon = ({ color = "#EF4444", size = 24 }) => (

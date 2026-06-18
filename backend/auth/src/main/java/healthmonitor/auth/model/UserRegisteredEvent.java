@@ -1,4 +1,4 @@
-package healthmonitor.model;
+package healthmonitor.auth.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

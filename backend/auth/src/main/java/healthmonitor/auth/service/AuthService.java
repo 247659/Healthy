@@ -1,10 +1,10 @@
-package healthmonitor.service;
+package healthmonitor.auth.service;
 
-import healthmonitor.model.dto.LoginRequestDto;
-import healthmonitor.model.dto.LogoutRequestDto;
-import healthmonitor.model.dto.PatientRegistrationDto;
-import healthmonitor.model.dto.RefreshTokenRequestDto;
-import healthmonitor.model.dto.TokenResponseDto;
+import healthmonitor.auth.model.dto.LoginRequestDto;
+import healthmonitor.auth.model.dto.LogoutRequestDto;
+import healthmonitor.auth.model.dto.PatientRegistrationDto;
+import healthmonitor.auth.model.dto.RefreshTokenRequestDto;
+import healthmonitor.auth.model.dto.TokenResponseDto;
 
 public interface AuthService {
     void registerPatient(PatientRegistrationDto patientDto);

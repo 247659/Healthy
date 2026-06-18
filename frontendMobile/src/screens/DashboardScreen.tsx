@@ -78,7 +78,7 @@ export const DashboardScreen = ({ patientData, onLogout }: DashboardScreenProps)
             const endTime = end.toISOString();
 
             // Pamiętaj: Jeśli używasz emulatora Androida, zamiast localhost użyj 10.0.2.2
-            const API_URL = `http://10.0.2.2:8000/api/vitals/${patientData.id}?start_time=${startTime}&end_time=${endTime}`;
+            const API_URL = `http://10.0.2.2:8080/api/vitals/${patientData.id}?start_time=${startTime}&end_time=${endTime}`;
 
             const response = await fetch(API_URL);
             const data = await response.json();
