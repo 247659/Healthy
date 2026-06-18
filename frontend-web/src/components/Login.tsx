@@ -56,16 +56,16 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
             // 3. Sprawdzamy, czy profil lekarza istnieje, używając jego ID
             try {
                 // Pobieramy dane z MedicalStaffController -> @GetMapping("/{id}")
-                await axios.get(`http://localhost:8080/api/v1/staff/${userId}`, {
+                await axios.get(`http://localhost:8082/api/v1/staff/${userId}`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
 
                 // Jeśli profil istnieje (status 200 OK), idziemy do listy pacjentów
-                navigate('/patients');
+                // navigate('/patients');
             } catch (profileErr: any) {
                 // Jeśli dostaniemy status 404 (Not Found), kierujemy na konfigurację profilu
                 if (profileErr.response && (profileErr.response.status === 404 || profileErr.response.status === 400)) {
-                    navigate('/profile-setup');
+                    navigate('/setup');
                 } else {
                     console.error('Błąd pobierania profilu:', profileErr);
                     // W razie innego błędu (np. 500) awaryjnie wpuszczamy do aplikacji
