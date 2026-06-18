@@ -49,9 +49,15 @@ async def on_message(message: aio_pika.abc.AbstractIncomingMessage,
                     "message": "Wykryto anomalię w parametrach życiowych!",
                     "timestamp": datetime.now().isoformat()
                 }
-                await channel.default_exchange.publish(
-                    aio_pika.Message(body=json.dumps(alert_payload).encode()),
-                    routing_key="notifications.queue"
+
+                notification_exchange = await channel.get_exchange("notifications.exchange")
+
+                await notification_exchange.publish(
+                    aio_pika.Message(
+                        body=json.dumps(alert_payload).encode(),
+                        content_type="application/json"
+                    ),
+                    routing_key="notifications.incoming"
                 )
 
             global message_counters
@@ -90,7 +96,7 @@ async def main():
         vitals_queue = await channel.declare_queue("vitals.ml.queue", durable=True)
         await vitals_queue.bind(exchange, routing_key="vitals.incoming")
 
-        await channel.declare_queue("notifications.queue", durable=True)
+        await channel.declare_exchange("notifications.exchange", aio_pika.ExchangeType.TOPIC, durable=True)
 
         print("✅ [AI Worker] Nasłuchuje na 'vitals.ml.queue'...")
 
