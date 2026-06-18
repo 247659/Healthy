@@ -1,0 +1,84 @@
+version: '3.8'
+name: HealthMonitor IoT - Databases
+
+services:
+  postgres:
+    container_name: healthy_postgres_databases
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+      - ./db/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: healthy_pgadmin_databases
+    image: dpage/pgadmin4:8.14
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./db/docker_pgadmin_servers.json:/pgadmin4/servers.json
+    ports:
+      - "15433:80"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/bin/echo 'postgres:5432:*:postgres:password' > /tmp/pgpassfile && chmod 600 /tmp/pgpassfile && /entrypoint.sh"
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak-server_databases
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: password
+    command: start-dev --import-realm
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
+
+  # 5. Baza Time-Series dla Vital Signs Service (Pomiary medyczne IoT)
+  vital_signs_db:
+    image: influxdb:latest
+    container_name: vital_signs_db_databases
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword123
+      DOCKER_INFLUXDB_INIT_ORG: health_monitoring
+      DOCKER_INFLUXDB_INIT_BUCKET: vital_signs
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: super-secret-auth-token-123
+    ports:
+      - "8086:8086"
+    volumes:
+      - vital_signs_data:/var/lib/influxdb2
+
+  # 6. Message Broker (RabbitMQ z interfejsem graficznym)
+  message_broker:
+    image: rabbitmq:3.12-management
+    container_name: message_broker_databases
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: adminpassword
+    ports:
+      - "5672:5672"   # Port główny do komunikacji mikroserwisów (AMQP)
+      - "15672:15672" # Port do panelu zarządzania w przeglądarce
+
+volumes:
+  postgres:
+  pgadmin:
+  vital_signs_data:

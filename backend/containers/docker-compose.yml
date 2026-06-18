@@ -1,0 +1,206 @@
+name: Healthy
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+  postgres:
+    container_name: healthy_postgres
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+      - ./db/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+    networks:
+      - backend
+
+  pgadmin:
+    container_name: healthy_pgadmin
+    image: dpage/pgadmin4:8.14
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./db/docker_pgadmin_servers.json:/pgadmin4/servers.json
+    ports:
+      - "15433:80"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/bin/echo 'postgres:5432:*:postgres:password' > /tmp/pgpassfile && chmod 600 /tmp/pgpassfile && /entrypoint.sh"
+    restart: unless-stopped
+    networks:
+      - backend
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak-server
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: password
+    command: start-dev --import-realm
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    networks:
+      - backend
+
+  vital_signs_db:
+    image: influxdb:latest
+    container_name: vital_signs_db
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword123
+      DOCKER_INFLUXDB_INIT_ORG: health_monitoring
+      DOCKER_INFLUXDB_INIT_BUCKET: vital_signs
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: super-secret-auth-token-123
+    ports:
+      - "8086:8086"
+    volumes:
+      - vital_signs_data:/var/lib/influxdb2
+    networks:
+      - backend
+
+  message_broker:
+    image: rabbitmq:4.1-management
+    container_name: message_broker
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: adminpassword
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
+
+  config-server:
+    container_name: config-server
+    build: ../config
+    ports:
+      - "8888:8888"
+    networks:
+      - backend
+
+  eureka-server:
+    container_name: eureka-server
+    build: ../eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - backend
+    depends_on:
+      - config-server
+      - message_broker
+
+  gateway:
+    container_name: gateway
+    build: ../api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+  auth:
+    container_name: auth-service
+    build: ../auth
+    ports:
+      - "8087:8087"
+    networks:
+      - backend
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+  patients:
+    container_name: patients-service
+    build: ../patients
+    ports:
+      - "8088:8088"
+    networks:
+      - backend
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+  medical-staff:
+    container_name: medical-staff-service
+    build: ../medical-staff
+    networks:
+      - backend
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+  vital-signs:
+    container_name: vital-signs-service
+    build: ../vital-signs-service
+    networks:
+      - backend
+    ports:
+      - "8084:8084"
+    depends_on:
+      - eureka-server
+      - message_broker
+      - vital_signs_db
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+  integration:
+    container_name: integration-service
+    build: ../integration
+    ports:
+      - "8083:8083"
+    networks:
+      - backend
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
+volumes:
+  postgres:
+  pgadmin:
+  vital_signs_data:
+

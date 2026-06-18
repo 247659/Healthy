@@ -33,3 +33,4 @@ CREATE DATABASE keycloak_db
     LC_CTYPE = 'en_US.utf8'
     TABLESPACE = pg_default
     CONNECTION LIMIT = -1;
+
