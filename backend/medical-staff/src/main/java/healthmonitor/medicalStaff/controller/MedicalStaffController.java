@@ -28,6 +28,11 @@ public class MedicalStaffController {
         return ResponseEntity.ok(medicalStaffService.getById(id));
     }
 
+    @PostMapping("/save")
+    public ResponseEntity<MedicalStaffResponse> save(@Valid @RequestBody MedicalStaffRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(medicalStaffService.save(request));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         medicalStaffService.delete(id);
