@@ -21,6 +21,9 @@ management:
     metrics:
       export:
         enabled: false
+    traces:
+      export:
+        enabled: false
 
 spring:
   rabbitmq:
