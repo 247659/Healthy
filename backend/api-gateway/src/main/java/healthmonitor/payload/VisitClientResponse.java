@@ -1,15 +1,14 @@
-package healthmonitor.visitsservice.visits.payload.response;
+package healthmonitor.payload;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public record VisitResponse(
+public record VisitClientResponse(
         UUID id,
         UUID medicalStaffId,
         String patientId,
         LocalDateTime visitTime,
         Integer durationMinutes,
-        String note,
-        LocalDateTime createdAt
+        String note
 ) {
 }

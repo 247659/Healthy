@@ -1,7 +1,5 @@
 package healthmonitor.medicalStaff.payload.response;
 
-import healthmonitor.medicalStaff.payload.request.SpecializationRequest;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -11,6 +9,6 @@ public record MedicalStaffResponse(
         String lastName,
         String phoneNumber,
         String licenseNumber,
-        List<SpecializationRequest> specializations
+        List<SpecializationResponse> specializations
 ) {
 }

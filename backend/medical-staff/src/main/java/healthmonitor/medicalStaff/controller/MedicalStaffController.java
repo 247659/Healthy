@@ -1,6 +1,5 @@
 package healthmonitor.medicalStaff.controller;
 
-import healthmonitor.client.PatientResponse;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.service.MedicalStaffService;
@@ -53,7 +52,7 @@ public class MedicalStaffController {
     }
 
     @GetMapping("/{id}/patients")
-    public ResponseEntity<List<PatientResponse>> getAllPatients(@PathVariable UUID id) {
-        return ResponseEntity.ok(medicalStaffService.getPatientsInfo(id));
+    public ResponseEntity<List<String>> getAllPatientIds(@PathVariable UUID id) {
+        return ResponseEntity.ok(medicalStaffService.getPatientsIds(id));
     }
 }

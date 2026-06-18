@@ -14,3 +14,12 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://keycloak-server:8080/realms/healthmonitor-realm
+
+medical-staff-service:
+  url: http://medical-staff-service
+
+patient-service:
+  url: http://patient-service
+
+visit-service:
+  url: http://visit-service

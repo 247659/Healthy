@@ -1,6 +1,5 @@
 package healthmonitor.medicalStaff.service;
 
-import healthmonitor.client.PatientResponse;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 
@@ -20,5 +19,5 @@ public interface MedicalStaffService {
 
     void assignPatient(UUID id, String patientId);
 
-    List<PatientResponse> getPatientsInfo(UUID id);
+    List<String> getPatientsIds(UUID id);
 }

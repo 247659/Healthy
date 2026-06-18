@@ -1,13 +1,12 @@
 package healthmonitor.medicalStaff.service;
 
 import healthmonitor.client.PatientClient;
-import healthmonitor.client.PatientResponse;
 import healthmonitor.medicalStaff.mapper.MedicalStaffMapper;
 import healthmonitor.medicalStaff.model.MedicalStaff;
+import healthmonitor.medicalStaff.model.PatientAssignment;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.repository.MedicalStaffRepository;
-import healthmonitor.medicalStaff.model.PatientAssignment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,9 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -85,14 +82,13 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     }
 
     @Override
-    public List<PatientResponse> getPatientsInfo(UUID id) {
+    public List<String> getPatientsIds(UUID id) {
         MedicalStaff medicalStaff = medicalStaffRepository.findWithPatientAssignmentsById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
-        Set<String> patientIds = medicalStaff.getPatientAssignments().stream()
-                .map(PatientAssignment::getPatientId)
-                .collect(Collectors.toSet());
 
-        return patientClient.getPatients(patientIds);
+        return medicalStaff.getPatientAssignments().stream()
+                .map(PatientAssignment::getPatientId)
+                .toList();
     }
 
     private MedicalStaff getEntity(UUID id) {

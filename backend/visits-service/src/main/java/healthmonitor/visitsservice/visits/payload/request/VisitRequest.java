@@ -10,7 +10,7 @@ public record VisitRequest(
         UUID medicalStaffId,
 
         @NotNull
-        UUID patientId,
+        String patientId,
 
         @NotNull
         LocalDateTime visitTime,

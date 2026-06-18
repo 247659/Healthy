@@ -139,7 +139,7 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
 
   patients:
-    container_name: patients-service
+    container_name: patient-service
     build: ../patients
     ports:
       - "8088:8088"
@@ -215,7 +215,7 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
       
   visit:
-    container_name: visits-service
+    container_name: visit-service
     build: ../visits-service
     ports:
       - "8089:8089"

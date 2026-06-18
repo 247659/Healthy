@@ -27,7 +27,7 @@ public class Visit {
     private UUID medicalStaffId;
 
     @Column(nullable = false)
-    private UUID patientId;
+    private String patientId;
 
     @Column(nullable = false)
     private LocalDateTime visitTime;
