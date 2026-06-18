@@ -1,0 +1,16 @@
+spring:
+  config:
+    import: "optional:configserver:http://config-server:8888"
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        max-attempts: 20
+        initial-interval: 2000
+        multiplier: 1.5
+        max-interval: 10000
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak-server:8080/realms/healthmonitor-realm
