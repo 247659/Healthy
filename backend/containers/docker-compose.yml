@@ -213,6 +213,22 @@ services:
       - postgres
     environment:
       - SPRING_PROFILES_ACTIVE=prod
+      
+  visit:
+    container_name: visits-service
+    build: ../visits-service
+    ports:
+      - "8089:8089"
+    networks:
+      - backend
+    depends_on:
+      - eureka-server
+      - message_broker
+      - config-server
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+
 
 volumes:
   postgres:
