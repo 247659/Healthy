@@ -4,6 +4,7 @@ import healthmonitor.notifications.communication.MedicalStaffClient;
 import healthmonitor.notifications.config.RabbitMQConfig;
 import healthmonitor.notifications.model.Alert;
 import healthmonitor.notifications.model.AlertDto;
+import healthmonitor.notifications.model.AlertEventMessage;
 import healthmonitor.notifications.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,7 @@ public class AlertServiceImpl implements AlertService {
     @Override
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     @Transactional
-    public void processAlert(AlertDto alertDto) {
+    public void processAlert(AlertEventMessage alertDto) {
         log.info("Receiver alert for user with ID: {}", alertDto.getPatientId());
 
         try {

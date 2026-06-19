@@ -19,7 +19,7 @@ public class MedicalStaffClient {
 
     public List<String> getDoctorIdsForPatient(String patientId) {
         return webClient.get()
-                .uri("/api/v1/staff/{patientId}/doctors-list", patientId)
+                .uri("/api/v1/staff/patients/{patientId}/doctors-list", patientId)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<String>>() {})
                 .block(); // Blokujemy, bo jesteśmy w kodzie synchronicznym RabbitMQ

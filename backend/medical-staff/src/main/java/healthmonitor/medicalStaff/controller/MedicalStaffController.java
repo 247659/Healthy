@@ -56,7 +56,7 @@ public class MedicalStaffController {
         return ResponseEntity.ok(medicalStaffService.getPatientsIds(id));
     }
 
-    @GetMapping("/{patientId}/doctors-list")
+    @GetMapping("/patients/{patientId}/doctors-list")
     public ResponseEntity<List<String>> getDoctorsForPatient(@PathVariable String patientId) {
         return ResponseEntity.ok(medicalStaffService.getDoctorsIdsByPatientId(patientId));
     }

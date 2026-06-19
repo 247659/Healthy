@@ -20,7 +20,7 @@ spring:
             - id: medical-staff-service-route
               uri: lb://medical-staff-service
               predicates:
-                - Path=/api/v1/medical-staff/**
+                - Path=/api/v1/staff/**
             - id: vital-signs-service-route
               uri: lb://vital-signs-service
               predicates:
@@ -28,7 +28,7 @@ spring:
             - id: notification-service-route
               uri: lb://notification-service
               predicates:
-                - Path=/api/v1/notifications/**
+                - Path=/api/v1/notifications/**, /api/v1/ws-notifications/**
             - id: auth-service-route
               uri: lb://auth-service
               predicates:
