@@ -14,8 +14,16 @@ public class StaffAggregateService {
     private final MedicalStaffClient medicalStaffClient;
     private final PatientClient patientClient;
 
-    public Flux<PatientClientResponse> getAssignedPatient(String staffId) {
+    public Flux<PatientClientResponse> getAssignedPatients(String staffId) {
         return medicalStaffClient.getAssignedPatientIds(staffId)
                 .flatMap(patientClient::getPatient);
+    }
+
+    public Flux<PatientClientResponse> getUnassignedPatients(String staffId) {
+        return medicalStaffClient.getAssignedPatientIds(staffId)
+                .collectList()
+                .flatMapMany(assignedIds -> patientClient.getAllPatients()
+                        .filter(patient -> !assignedIds.contains(patient.id()))
+                );
     }
 }

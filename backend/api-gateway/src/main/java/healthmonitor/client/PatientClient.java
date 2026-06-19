@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -34,5 +35,18 @@ public class PatientClient {
                 .bodyToMono(PatientClientResponse.class)
                 .timeout(Duration.ofSeconds(10))
                 .onErrorResume(e -> Mono.just(PatientClientResponse.unfetched(id)));
+    }
+
+    public Flux<PatientClientResponse> getAllPatients() {
+        return webClient.get()
+                .uri("/api/v1/patients/allPatients")
+                .retrieve()
+                .onStatus(
+                        HttpStatusCode::is5xxServerError,
+                        response -> Mono.error(new IllegalStateException("Patient service is unavailable"))
+                )
+                .bodyToFlux(PatientClientResponse.class)
+                .timeout(Duration.ofSeconds(10))
+                .onErrorResume(e -> Flux.empty());
     }
 }

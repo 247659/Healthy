@@ -14,8 +14,13 @@ public class StaffAggregateController {
 
     private final StaffAggregateService staffAggregateService;
 
-    @GetMapping("/dashboard/staff/{staffId}/patients")
+    @GetMapping("/dashboard/staff/{staffId}/patients/assigned")
     public Flux<PatientClientResponse> getAssignedPatients(@PathVariable String staffId) {
-        return staffAggregateService.getAssignedPatient(staffId);
+        return staffAggregateService.getAssignedPatients(staffId);
+    }
+
+    @GetMapping("/dashboard/staff/{staffId}/patients/unassigned")
+    public Flux<PatientClientResponse> getUnassignedPatients(@PathVariable String staffId) {
+        return staffAggregateService.getUnassignedPatients(staffId);
     }
 }

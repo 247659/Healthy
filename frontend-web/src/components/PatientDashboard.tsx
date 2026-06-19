@@ -39,8 +39,7 @@ const PatientDashboard = () => {
 
     const doctorId = getDoctorId();
 
-    const PATIENTS_API_URL = 'http://localhost:8088/api/v1/patients/allPatients';
-    const ASSIGNED_PATIENTS_API_URL = `http://localhost:8080/api/v1/gateway/dashboard/staff/${doctorId}/patients`;
+    const AGGREGATED_PATIENTS_API_URL = `http://localhost:8080/api/v1/gateway/dashboard/staff/${doctorId}/patients`;
     const STAFF_API_BASE_URL = `http://localhost:8082/api/v1/staff`;
 
     useEffect(() => {
@@ -53,12 +52,12 @@ const PatientDashboard = () => {
             setIsLoading(true);
             try {
                 const [patientsRes, assignedPatientsRes] = await Promise.all([
-                    axios.get(PATIENTS_API_URL, { headers: { Authorization: `Bearer ${token}` } })
+                    axios.get(`${AGGREGATED_PATIENTS_API_URL}/unassigned`, { headers: { Authorization: `Bearer ${token}` } })
                         .catch(err => {
                             if (err.response && err.response.status === 404) return { data: [] };
                             throw err;
                         }),
-                    axios.get(`${ASSIGNED_PATIENTS_API_URL}`, { headers: {Authorization: `Bearer ${token}`}})
+                    axios.get(`${AGGREGATED_PATIENTS_API_URL}/assigned`, { headers: {Authorization: `Bearer ${token}`}})
                         .catch(err => {
                             if (err.response && err.response.status === 404) return { data: [] };
                             throw err;
@@ -93,9 +92,6 @@ const PatientDashboard = () => {
     };
 
     if (isLoading) return <div className="login-container">Ładowanie pacjentów...</div>;
-
-    const unassignedPatients = patients.filter(p => !assignedPatients.some(assigned => assigned.id === p.id));
-
     return (
         <div className="login-container" style={{ alignItems: 'flex-start', paddingTop: '50px' }}>
             <div className="login-card" style={{ maxWidth: '800px', width: '100%' }}>
@@ -124,7 +120,7 @@ const PatientDashboard = () => {
                             color: activeTab === 'unassigned' ? '#28a745' : '#666'
                         }}
                     >
-                        Dostępni do przypisania ({unassignedPatients.length})
+                        Dostępni do przypisania ({patients.length})
                     </button>
                 </div>
 
@@ -159,9 +155,9 @@ const PatientDashboard = () => {
                 {/* Widok 2: Pacjenci dostępni do przypisania */}
                 {activeTab === 'unassigned' && (
                     <div>
-                        {unassignedPatients.length > 0 ? (
+                        {patients.length > 0 ? (
                             <ul style={{ listStyle: 'none', padding: 0 }}>
-                                {unassignedPatients.map(patient => (
+                                {patients.map(patient => (
                                     <li key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #eee', marginBottom: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                                         <div style={{ flex: 1 }}>
                                             <strong style={{ fontSize: '18px', color: '#333', display: 'block', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>
