@@ -1,9 +1,8 @@
-// frontend/web/src/components/Login.tsx
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-import {authService} from "../api/authClient.ts";
+import { authService } from "../api/authClient.ts";
 
 // Funkcja pomocnicza do dekodowania tokenu JWT (nie wymaga instalacji zewnętrznych bibliotek)
 const getUserIdFromToken = (token: string) => {
@@ -32,14 +31,14 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        setError(''); // Czyścimy błędy z poprzednich prób logowania
         setIsLoading(true);
 
         try {
             const response = await authService.login({ email, password });
 
-            const accessToken = response.accessToken
-            const refreshToken = response.refreshToken
+            const accessToken = response.accessToken;
+            const refreshToken = response.refreshToken;
 
             localStorage.setItem('access_token', accessToken);
             localStorage.setItem('refresh_token', refreshToken);
@@ -61,21 +60,26 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
                 });
 
                 // Jeśli profil istnieje (status 200 OK), idziemy do listy pacjentów
-                // navigate('/patients');
+                navigate('/patients');
             } catch (profileErr: any) {
-                // Jeśli dostaniemy status 404 (Not Found), kierujemy na konfigurację profilu
+                console.log(profileErr);
+                // Jeśli dostaniemy status 404 (Not Found) lub 400, kierujemy na konfigurację profilu
                 if (profileErr.response && (profileErr.response.status === 404 || profileErr.response.status === 400)) {
                     navigate('/setup');
                 } else {
-                    console.error('Błąd pobierania profilu:', profileErr);
-                    // W razie innego błędu (np. 500) awaryjnie wpuszczamy do aplikacji
-                    navigate('/patients');
+                    // Dodany blok else obsługujący inne błędy profilu
+                    if (profileErr.response && profileErr.response.status === 403) {
+                        setError("Brak uprawnień do wyświetlenia profilu medycznego.");
+                    } else {
+                        setError("Wystąpił problem podczas weryfikacji profilu lekarza.");
+                    }
                 }
             }
 
         } catch (err) {
             if (axios.isAxiosError(err)) {
-                if (err.status === 401) {
+                // Zmieniono err.status na err.response?.status dla bezpieczeństwa w Axios
+                if (err.response?.status === 401 || err.status === 401) {
                     setError("Nieprawidłowy email lub hasło.");
                 } else {
                     setError("Błąd podczas logowania. Spróbuj ponownie później.");
@@ -83,7 +87,7 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
             } else {
                 setError('Brak połączenia z serwerem.');
             }
-            setError('');
+            // USUNIĘTO: setError(''); - to powodowało natychmiastowe znikanie błędu
         } finally {
             setIsLoading(false);
         }
@@ -95,7 +99,8 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
                 <h2 className="login-title">Witaj ponownie</h2>
                 <p className="login-subtitle">Zaloguj się do panelu medycznego HealthMonitor</p>
 
-                {error && <div className="error-message">{error}</div>}
+                {/* Wyświetlanie błędu - zadziała, ponieważ nie jest on już nadpisywany */}
+                {error && <div className="error-message" style={{ color: 'red', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
                 <form className="login-form" onSubmit={handleLogin}>
                     <div className="input-group">

@@ -5,6 +5,7 @@ import Login from './components/Login';
 import ProfileSetup from './components/ProfileSetup';
 import StaffProfile from "./components/StaffProfile";
 import PatientDashboard from "./components/PatientDashboard";
+import PatientDetails from "./components/PatientDetails.tsx";
 
 function App() {
     const [token, setToken] = useState(localStorage.getItem('access_token'));
@@ -32,6 +33,7 @@ function App() {
                     <Route path="/setup" element={<ProfileSetup />} />
                     <Route path="/patients" element={<PatientDashboard />} />
                     <Route path="/profile/:id" element={<StaffProfile />} />
+                    <Route path="/patient/:id" element={<PatientDetails />} />
                 </Routes>
             </main>
         </div>

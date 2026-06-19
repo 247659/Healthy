@@ -2,22 +2,11 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-
-// Zaktualizowany interfejs na podstawie PatientDto
-interface Patient {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    pesel?: string;
-    phoneNumber?: string; // Nowe pole
-    address?: string;     // Nowe pole
-    dateOfBirth?: string;   // Nowe pole
-}
+import { type Patient } from './PatientDetails';
 
 const PatientDashboard = () => {
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [assignedPatients, setAssignedPatients] = useState<string[]>([]);
+    const [assignedPatients, setAssignedPatients] = useState<Patient[]>([]);
     const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
 
     const [isLoading, setIsLoading] = useState(true);
@@ -64,8 +53,8 @@ const PatientDashboard = () => {
                         })
                 ]);
 
-                setPatients(patientsRes.data);
-                setAssignedPatients(assignedPatientsRes.data);
+                setPatients(Array.isArray(patientsRes.data) ? patientsRes.data : []);
+                setAssignedPatients(Array.isArray(assignedPatientsRes.data) ? assignedPatientsRes.data : []);
             } catch (err) {
                 console.error("Błąd pobierania danych:", err);
                 setError("Nie udało się pobrać danych pacjentów.");
@@ -83,7 +72,12 @@ const PatientDashboard = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            setAssignedPatients(prev => [...prev, patientId]);
+            const patientToAdd = patients.find(p => p.id === patientId);
+            if (patientToAdd) {
+                setAssignedPatients(prev => [...prev, patientToAdd]);
+                setPatients(prev => prev.filter(p => p.id !== patientId));
+            }
+
             alert('Pacjent został pomyślnie przypisany!');
         } catch (err) {
             console.error("Błąd przypisywania pacjenta:", err);
@@ -91,7 +85,14 @@ const PatientDashboard = () => {
         }
     };
 
+    // Funkcja wywoływana przy kliknięciu "Otwórz kartę"
+    const handleOpenPatientCard = (patient: Patient) => {
+        // Zmienia URL na /patient/{id} i przekazuje pacjenta ukrytym stanem
+        navigate(`/patient/${patient.id}`, { state: { patient } });
+    };
+
     if (isLoading) return <div className="login-container">Ładowanie pacjentów...</div>;
+
     return (
         <div className="login-container" style={{ alignItems: 'flex-start', paddingTop: '50px' }}>
             <div className="login-card" style={{ maxWidth: '800px', width: '100%' }}>
@@ -124,24 +125,31 @@ const PatientDashboard = () => {
                     </button>
                 </div>
 
-                {/* Widok 1: Przypisani pacjenci */}
                 {activeTab === 'assigned' && (
                     <div>
                         {assignedPatients.length > 0 ? (
                             <ul style={{ listStyle: 'none', padding: 0 }}>
                                 {assignedPatients.map(patient => (
-                                    <li key={patient.id} style={{ padding: '20px', border: '1px solid #b8daff', backgroundColor: '#f8f9fa', marginBottom: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                        <strong style={{ color: '#0056b3', fontSize: '18px', display: 'block', borderBottom: '1px solid #dee2e6', paddingBottom: '10px', marginBottom: '10px' }}>
-                                            {patient.firstName || 'Brak imienia'} {patient.lastName || 'Brak nazwiska'}
-                                        </strong>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px', color: '#444' }}>
-                                            <div><strong>PESEL:</strong> {patient.pesel || 'Brak'}</div>
-                                            <div><strong>Data ur.:</strong> {patient.dateOfBirth || 'Brak'}</div>
-                                            <div><strong>Telefon:</strong> {patient.phoneNumber || 'Brak'}</div>
-                                            <div><strong>Email:</strong> {patient.email || 'Brak'}</div>
-                                            <div style={{ gridColumn: '1 / span 2', marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed #e9ecef' }}>
-                                                <strong>Adres:</strong> {patient.address || 'Brak'}
+                                    <li key={patient.id} style={{ padding: '20px', border: '1px solid #b8daff', backgroundColor: '#f8f9fa', marginBottom: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <strong style={{ color: '#0056b3', fontSize: '18px', display: 'block', borderBottom: '1px solid #dee2e6', paddingBottom: '10px', marginBottom: '10px' }}>
+                                                {patient.firstName || 'Brak imienia'} {patient.lastName || 'Brak nazwiska'}
+                                            </strong>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px', color: '#444' }}>
+                                                <div><strong>PESEL:</strong> {patient.pesel || 'Brak'}</div>
+                                                <div><strong>Data ur.:</strong> {patient.dateOfBirth || 'Brak'}</div>
+                                                <div><strong>Telefon:</strong> {patient.phoneNumber || 'Brak'}</div>
+                                                <div><strong>Email:</strong> {patient.email || 'Brak'}</div>
                                             </div>
+                                        </div>
+                                        <div style={{ marginLeft: '20px' }}>
+                                            <button
+                                                className="login-button"
+                                                style={{ width: 'auto', padding: '10px 20px', margin: 0, backgroundColor: '#0056b3' }}
+                                                onClick={() => handleOpenPatientCard(patient)}
+                                            >
+                                                Otwórz kartę
+                                            </button>
                                         </div>
                                     </li>
                                 ))}
@@ -152,7 +160,6 @@ const PatientDashboard = () => {
                     </div>
                 )}
 
-                {/* Widok 2: Pacjenci dostępni do przypisania */}
                 {activeTab === 'unassigned' && (
                     <div>
                         {patients.length > 0 ? (
