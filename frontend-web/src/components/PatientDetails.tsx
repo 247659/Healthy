@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export interface Patient {
     id: string;
@@ -14,46 +15,53 @@ export interface Patient {
 }
 
 interface VitalSigns {
-    id?: string;
     patientId?: string;
     timestamp: string;
-    heartRate?: number;
-    bloodPressureSystolic?: number;
-    bloodPressureDiastolic?: number;
-    oxygenSaturation?: number;
-    temperature?: number;
+    measurements: {
+        heartRate?: number;
+        spO2?: number;
+        temperature?: number;
+        bloodPressure?: {
+            systolic?: number;
+            diastolic?: number;
+        };
+    };
 }
 
 const PatientDetails = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Odczytujemy obiekt pacjenta, który przekażemy podczas nawigacji
     const patient = location.state?.patient as Patient | undefined;
     const token = localStorage.getItem('access_token');
 
-    const [vitals, setVitals] = useState<VitalSigns[]>([]);
-    const [isVitalsLoading, setIsVitalsLoading] = useState(false);
+    // Dwa osobne stany: jeden dla historii (wykresy), drugi dla najnowszego pomiaru (live)
+    const [historyVitals, setHistoryVitals] = useState<VitalSigns[]>([]);
+    const [latestVitals, setLatestVitals] = useState<VitalSigns | null>(null);
+    const [isVitalsLoading, setIsVitalsLoading] = useState(true);
 
-    const VITALS_API_BASE_URL = `http://localhost:8080/vital-signs/patient`;
+    const VITALS_API_BASE_URL = `http://localhost:8080/api/v1/vital-signs/patient`;
 
     useEffect(() => {
-        // Jeśli wejdziemy bezpośrednio z linku i nie mamy danych pacjenta, wracamy do listy
         if (!patient || !token) {
             navigate('/patients');
             return;
         }
 
-        const fetchVitals = async (isFirstLoad: boolean) => {
-            if (isFirstLoad) {
-                setIsVitalsLoading(true);
-            }
-
+        // 1. POBIERANIE HISTORII (tylko raz po wejściu na stronę)
+        const fetchHistory = async () => {
+            setIsVitalsLoading(true);
             try {
                 const res = await axios.get(`${VITALS_API_BASE_URL}/${patient.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setVitals(Array.isArray(res.data) ? res.data : []);
+                const data = Array.isArray(res.data) ? res.data : [];
+                setHistoryVitals(data);
+
+                // Od razu ustawiamy najnowszy z historii jako "live", żeby nie czekać 5 sekund na pierwszy render
+                if (data.length > 0) {
+                    setLatestVitals(data[0]);
+                }
             } catch (err) {
                 console.error("Błąd pobierania historii pomiarów:", err);
             } finally {
@@ -61,100 +69,217 @@ const PatientDetails = () => {
             }
         };
 
-        fetchVitals(true);
+        // 2. POBIERANIE DANYCH LIVE (co 5 sekund, pytamy tylko o ostatnią minutę, żeby nie obciążać bazy)
+        const fetchLiveVitals = async () => {
+            try {
+                // Obliczamy czas sprzed minuty (format ISO)
+                const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
 
-        const intervalId = setInterval(() => {
-            fetchVitals(false);
-        }, 5000);
+                const res = await axios.get(`${VITALS_API_BASE_URL}/${patient.id}?from=${oneMinuteAgo}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = Array.isArray(res.data) ? res.data : [];
+
+                if (data.length > 0) {
+                    setLatestVitals(data[0]); // Zawsze bierzemy najświeższy z odpowiedzi
+                }
+            } catch (err) {
+                // Ciche zignorowanie błędu, by nie spamować konsoli w tle
+            }
+        };
+
+        fetchHistory();
+        const intervalId = setInterval(fetchLiveVitals, 5000);
 
         return () => {
             clearInterval(intervalId);
         };
     }, [patient, token, navigate]);
 
-    // Ochrona przed renderowaniem, gdy brakuje pacjenta (przed redirectem)
     if (!patient) return null;
 
-    const latestVitals = vitals.length > 0 ? vitals[0] : null;
+    // --- OBLICZANIE STATYSTYK NA BAZIE HISTORII (Nie zmienia się co 5 sekund) ---
+    const getStats = (selector: (v: VitalSigns) => number | undefined) => {
+        const values = historyVitals.map(selector).filter(v => v !== undefined && v !== null) as number[];
+        if (values.length === 0) return { min: '--', max: '--' };
+        return { min: Math.min(...values), max: Math.max(...values) };
+    };
+
+    const hrStats = getStats(v => v.measurements?.heartRate);
+    const sysStats = getStats(v => v.measurements?.bloodPressure?.systolic);
+    const diaStats = getStats(v => v.measurements?.bloodPressure?.diastolic);
+    const spo2Stats = getStats(v => v.measurements?.spO2);
+    const tempStats = getStats(v => v.measurements?.temperature);
+
+    // --- DANE DO WYKRESÓW (Nie zmieniają się co 5 sekund) ---
+    const chartData = useMemo(() => {
+        return [...historyVitals].reverse().map(v => ({
+            time: new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            heartRate: v.measurements?.heartRate,
+            systolic: v.measurements?.bloodPressure?.systolic,
+            diastolic: v.measurements?.bloodPressure?.diastolic,
+            spO2: v.measurements?.spO2,
+            temperature: v.measurements?.temperature
+        }));
+    }, [historyVitals]);
 
     return (
-        <div className="login-container" style={{ alignItems: 'flex-start', paddingTop: '50px' }}>
-            <div className="login-card" style={{ maxWidth: '800px', width: '100%' }}>
-                <button
-                    onClick={() => navigate('/patients')} // Cofa nas na stronę główną pacjentów
-                    style={{ background: 'none', border: 'none', color: '#0056b3', cursor: 'pointer', marginBottom: '20px', fontSize: '16px', fontWeight: 'bold' }}
-                >
-                    &larr; Wróć do listy pacjentów
-                </button>
+        <div style={{ minHeight: '100vh', backgroundColor: '#f4f7f6', padding: '20px 5%', fontFamily: "'Inter', system-ui, sans-serif" }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
 
-                <h2 className="login-title">Karta pacjenta: {patient.firstName} {patient.lastName}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', gap: '20px' }}>
+                    <button
+                        onClick={() => navigate('/patients')}
+                        style={{
+                            background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 15px',
+                            color: '#4a5568', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                            fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                    >
+                        <span>&larr;</span> Wróć
+                    </button>
+                    <h2 style={{ color: '#2d3748', margin: 0, fontSize: '24px', fontWeight: '700' }}>
+                        {patient.firstName} {patient.lastName}
+                    </h2>
+                </div>
 
-                <div style={{ padding: '20px', border: '1px solid #dee2e6', borderRadius: '8px', marginBottom: '20px', backgroundColor: '#f8f9fa' }}>
-                    <h3 style={{ marginTop: 0, color: '#333' }}>Dane podstawowe</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '15px' }}>
-                        <div><strong>PESEL:</strong> {patient.pesel || 'Brak'}</div>
-                        <div><strong>Data ur.:</strong> {patient.dateOfBirth || 'Brak'}</div>
-                        <div><strong>Telefon:</strong> {patient.phoneNumber || 'Brak'}</div>
-                        <div><strong>Email:</strong> {patient.email || 'Brak'}</div>
-                        <div style={{ gridColumn: '1 / span 2' }}><strong>Adres:</strong> {patient.address || 'Brak'}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                    <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                        <h3 style={{ marginTop: 0, color: '#4a5568', fontSize: '16px', marginBottom: '20px', borderBottom: '1px solid #edf2f7', paddingBottom: '10px' }}>Informacje</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', fontSize: '15px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#a0aec0' }}>PESEL</span> <strong style={{ color: '#2d3748' }}>{patient.pesel || 'Brak'}</strong></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#a0aec0' }}>Wiek</span> <strong style={{ color: '#2d3748' }}>{patient.dateOfBirth || 'Brak'}</strong></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#a0aec0' }}>Telefon</span> <strong style={{ color: '#2d3748' }}>{patient.phoneNumber || 'Brak'}</strong></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#a0aec0' }}>Adres</span> <strong style={{ color: '#2d3748', textAlign: 'right' }}>{patient.address || 'Brak'}</strong></div>
+                        </div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                        <h3 style={{ marginTop: 0, color: '#4a5568', fontSize: '16px', marginBottom: '20px', borderBottom: '1px solid #edf2f7', paddingBottom: '10px' }}>Statystyki z 24h (Min / Max)</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ color: '#a0aec0', fontSize: '14px' }}>Tętno (bpm)</span>
+                                <strong style={{ color: '#d9534f', fontSize: '16px' }}>{hrStats.min} - {hrStats.max}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ color: '#a0aec0', fontSize: '14px' }}>Ciśnienie (mmHg)</span>
+                                <strong style={{ color: '#0275d8', fontSize: '16px' }}>{sysStats.min}/{diaStats.min} - {sysStats.max}/{diaStats.max}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ color: '#a0aec0', fontSize: '14px' }}>Saturacja (%)</span>
+                                <strong style={{ color: '#5cb85c', fontSize: '16px' }}>{spo2Stats.min} - {spo2Stats.max}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ color: '#a0aec0', fontSize: '14px' }}>Temperatura (°C)</span>
+                                <strong style={{ color: '#ed8936', fontSize: '16px' }}>{tempStats.min} - {tempStats.max}</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div style={{ padding: '20px', border: '1px solid #b8daff', borderRadius: '8px', marginBottom: '20px', backgroundColor: '#e9f7ef' }}>
-                    <h3 style={{ marginTop: 0, color: '#28a745', display: 'flex', justifyContent: 'space-between' }}>
-                        Aktualne pomiary (Na żywo)
-                        <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#666', animation: 'pulse 1.5s infinite' }}>🔴 Live</span>
-                    </h3>
-                    {isVitalsLoading && vitals.length === 0 ? (
-                        <p>Ładowanie pierwszych danych...</p>
-                    ) : latestVitals ? (
-                        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                            <div style={{ flex: 1, padding: '15px', background: '#fff', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <div style={{ fontSize: '14px', color: '#666' }}>Tętno</div>
-                                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#d9534f' }}>{latestVitals.heartRate ?? '--'} <small>bpm</small></div>
-                            </div>
-                            <div style={{ flex: 1, padding: '15px', background: '#fff', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <div style={{ fontSize: '14px', color: '#666' }}>Ciśnienie</div>
-                                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0275d8' }}>{latestVitals.bloodPressureSystolic ?? '--'} / {latestVitals.bloodPressureDiastolic ?? '--'}</div>
-                            </div>
-                            <div style={{ flex: 1, padding: '15px', background: '#fff', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <div style={{ fontSize: '14px', color: '#666' }}>Saturacja (SpO2)</div>
-                                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#5cb85c' }}>{latestVitals.oxygenSaturation ?? '--'} <small>%</small></div>
-                            </div>
-                            <div style={{ width: '100%', textAlign: 'right', fontSize: '12px', color: '#999', marginTop: '10px' }}>
-                                Ostatnia aktualizacja: {new Date(latestVitals.timestamp).toLocaleString()}
+                <h3 style={{ marginTop: '30px', color: '#2d3748', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    Bieżące parametry życiowe
+                    <span style={{ fontSize: '11px', backgroundColor: '#fed7d7', color: '#c53030', padding: '3px 8px', borderRadius: '12px', fontWeight: 'bold' }}>LIVE (odświeżane co 5s)</span>
+                </h3>
+
+                {isVitalsLoading ? (
+                    <p style={{ color: '#718096' }}>Pobieranie historii z bazy danych...</p>
+                ) : latestVitals ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+                        <div style={{ backgroundColor: '#fff5f5', padding: '24px', borderRadius: '20px', border: '1px solid #fed7d7', transition: 'all 0.3s ease' }}>
+                            <div style={{ fontSize: '14px', color: '#c53030', fontWeight: '600', marginBottom: '5px' }}>TĘTNO</div>
+                            <div style={{ fontSize: '42px', fontWeight: '800', color: '#e53e3e' }}>
+                                {latestVitals.measurements?.heartRate ?? '--'} <span style={{ fontSize: '16px', fontWeight: '500' }}>bpm</span>
                             </div>
                         </div>
-                    ) : (
-                        <p>Brak aktualnych pomiarów dla tego pacjenta.</p>
-                    )}
-                </div>
 
-                <div style={{ padding: '20px', border: '1px solid #dee2e6', borderRadius: '8px' }}>
-                    <h3 style={{ marginTop: 0, color: '#333' }}>Historia pomiarów (24h)</h3>
-                    {vitals.length > 0 ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                            <thead>
-                            <tr style={{ borderBottom: '2px solid #ddd' }}>
-                                <th style={{ padding: '10px' }}>Czas</th>
-                                <th style={{ padding: '10px' }}>Tętno</th>
-                                <th style={{ padding: '10px' }}>Ciśnienie</th>
-                                <th style={{ padding: '10px' }}>SpO2</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {vitals.map((v, idx) => (
-                                <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '10px' }}>{new Date(v.timestamp).toLocaleString()}</td>
-                                    <td style={{ padding: '10px' }}>{v.heartRate} bpm</td>
-                                    <td style={{ padding: '10px' }}>{v.bloodPressureSystolic}/{v.bloodPressureDiastolic}</td>
-                                    <td style={{ padding: '10px' }}>{v.oxygenSaturation}%</td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                        <div style={{ backgroundColor: '#ebf8ff', padding: '24px', borderRadius: '20px', border: '1px solid #bee3f8', transition: 'all 0.3s ease' }}>
+                            <div style={{ fontSize: '14px', color: '#2b6cb0', fontWeight: '600', marginBottom: '5px' }}>CIŚNIENIE KRWI</div>
+                            <div style={{ fontSize: '42px', fontWeight: '800', color: '#3182ce' }}>
+                                {latestVitals.measurements?.bloodPressure?.systolic ?? '--'}<span style={{ fontSize: '28px', color: '#63b3ed' }}>/</span>{latestVitals.measurements?.bloodPressure?.diastolic ?? '--'} <span style={{ fontSize: '16px', fontWeight: '500' }}>mmHg</span>
+                            </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#f0fff4', padding: '24px', borderRadius: '20px', border: '1px solid #c6f6d5', transition: 'all 0.3s ease' }}>
+                            <div style={{ fontSize: '14px', color: '#2f855a', fontWeight: '600', marginBottom: '5px' }}>SATURACJA SPO2</div>
+                            <div style={{ fontSize: '42px', fontWeight: '800', color: '#38a169' }}>
+                                {latestVitals.measurements?.spO2 ?? '--'} <span style={{ fontSize: '16px', fontWeight: '500' }}>%</span>
+                            </div>
+                        </div>
+
+                        <div style={{ backgroundColor: '#fffff0', padding: '24px', borderRadius: '20px', border: '1px solid #feebc8', transition: 'all 0.3s ease' }}>
+                            <div style={{ fontSize: '14px', color: '#c05621', fontWeight: '600', marginBottom: '5px' }}>TEMPERATURA</div>
+                            <div style={{ fontSize: '42px', fontWeight: '800', color: '#dd6b20' }}>
+                                {latestVitals.measurements?.temperature ?? '--'} <span style={{ fontSize: '16px', fontWeight: '500' }}>°C</span>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <p style={{ color: '#718096' }}>Brak zapisanych pomiarów dla tego pacjenta.</p>
+                )}
+
+                {/* WYKRESY ZWIĘKSZONE I W 1 KOLUMNIE */}
+                <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                    <h3 style={{ marginTop: 0, color: '#2d3748', fontSize: '18px', marginBottom: '30px' }}>Historia wykresów (statyczna)</h3>
+                    {historyVitals.length > 0 ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '50px' }}>
+
+                            <div style={{ width: '100%', height: '400px' }}>
+                                <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#e53e3e', fontWeight: '600' }}>Wykres Tętna</h4>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ left: -10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#edf2f7" />
+                                        <XAxis dataKey="time" tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <YAxis domain={['dataMin - 10', 'dataMax + 10']} tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                        <Line type="monotone" dataKey="heartRate" stroke="#e53e3e" strokeWidth={3} dot={{r: 4, fill: '#e53e3e'}} activeDot={{r: 8}} name="Tętno" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            <div style={{ width: '100%', height: '400px' }}>
+                                <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#3182ce', fontWeight: '600' }}>Wykres Ciśnienia</h4>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ left: -10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#edf2f7" />
+                                        <XAxis dataKey="time" tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <YAxis domain={['auto', 'auto']} tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                        <Line type="monotone" dataKey="systolic" stroke="#3182ce" strokeWidth={3} dot={false} name="SYS (Skurczowe)" />
+                                        <Line type="monotone" dataKey="diastolic" stroke="#63b3ed" strokeWidth={3} dot={false} name="DIA (Rozkurczowe)" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            <div style={{ width: '100%', height: '400px' }}>
+                                <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#38a169', fontWeight: '600' }}>Wykres Saturacji SpO2</h4>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ left: -10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#edf2f7" />
+                                        <XAxis dataKey="time" tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <YAxis domain={[80, 100]} tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                        <Line type="monotone" dataKey="spO2" stroke="#38a169" strokeWidth={3} dot={{r: 4, fill: '#38a169'}} activeDot={{r: 8}} name="SpO2" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            <div style={{ width: '100%', height: '400px' }}>
+                                <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#dd6b20', fontWeight: '600' }}>Wykres Temperatury</h4>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData} margin={{ left: -10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#edf2f7" />
+                                        <XAxis dataKey="time" tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <YAxis domain={[35, 42]} tick={{fontSize: 12, fill: '#a0aec0'}} axisLine={false} tickLine={false} />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                        <Line type="monotone" dataKey="temperature" stroke="#dd6b20" strokeWidth={3} dot={{r: 4, fill: '#dd6b20'}} activeDot={{r: 8}} name="Temperatura" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                        </div>
                     ) : (
-                        <p>Brak historii pomiarów z ostatnich 24 godzin.</p>
+                        <p style={{ color: '#a0aec0' }}>Brak wystarczającej ilości danych do wygenerowania wykresów.</p>
                     )}
                 </div>
             </div>

@@ -34,28 +34,31 @@ const Navbar = ({ token, setToken, refreshToken, setRefreshToken }: NavbarProps)
 
     return (
         <nav className="navbar">
-            <h2 className="navbar-brand" onClick={() => navigate('/patients')}>
-                <span>🏥</span> HealthMonitor
-            </h2>
+            <div className="navbar-container">
+                <h2 className="navbar-brand" onClick={() => navigate('/patients')}>
+                    <span className="brand-icon">🏥</span>
+                    <span className="brand-text">HealthMonitor</span>
+                </h2>
 
-            <div className="nav-links">
-                {token ? (
-                    <>
-                        <button onClick={() => navigate('/patients')} className="nav-btn nav-btn-secondary">
-                            Pacjenci
-                        </button>
-                        <button onClick={goToProfile} className="nav-btn nav-btn-primary">
-                            Mój Profil
-                        </button>
-                        <button onClick={handleLogout} className="nav-btn nav-btn-logout">
-                            Wyloguj
-                        </button>
-                    </>
-                ) : (
-                    <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                        Zaloguj się, aby uzyskać dostęp
-                    </span>
-                )}
+                <div className="nav-links">
+                    {token ? (
+                        <>
+                            <button onClick={() => navigate('/patients')} className="nav-btn nav-btn-secondary">
+                                Pacjenci
+                            </button>
+                            <button onClick={goToProfile} className="nav-btn nav-btn-primary">
+                                Profil
+                            </button>
+                            <button onClick={handleLogout} className="nav-btn nav-btn-logout">
+                                Wyloguj
+                            </button>
+                        </>
+                    ) : (
+                        <span className="nav-guest-text">
+                            Zaloguj się, aby uzyskać dostęp
+                        </span>
+                    )}
+                </div>
             </div>
         </nav>
     );

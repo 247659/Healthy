@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Login.css';
 import { type Patient } from './PatientDetails';
 
 const PatientDashboard = () => {
@@ -77,126 +76,136 @@ const PatientDashboard = () => {
                 setAssignedPatients(prev => [...prev, patientToAdd]);
                 setPatients(prev => prev.filter(p => p.id !== patientId));
             }
-
-            alert('Pacjent został pomyślnie przypisany!');
         } catch (err) {
             console.error("Błąd przypisywania pacjenta:", err);
             alert("Wystąpił błąd podczas przypisywania pacjenta.");
         }
     };
 
-    // Funkcja wywoływana przy kliknięciu "Otwórz kartę"
     const handleOpenPatientCard = (patient: Patient) => {
-        // Zmienia URL na /patient/{id} i przekazuje pacjenta ukrytym stanem
         navigate(`/patient/${patient.id}`, { state: { patient } });
     };
 
-    if (isLoading) return <div className="login-container">Ładowanie pacjentów...</div>;
+    if (isLoading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f4f7f6', color: '#555', fontSize: '18px' }}>
+                Ładowanie pacjentów...
+            </div>
+        );
+    }
+
+    const renderPatientCard = (patient: Patient, isAssigned: boolean) => (
+        <div key={patient.id} style={{
+            backgroundColor: '#fff',
+            borderRadius: '16px',
+            padding: '20px',
+            marginBottom: '15px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px',
+            border: '1px solid #edf2f7'
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #edf2f7', paddingBottom: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: isAssigned ? '#e3f2fd' : '#f0f4f8', color: isAssigned ? '#1976d2' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 'bold' }}>
+                        {patient.firstName?.charAt(0) || ''}{patient.lastName?.charAt(0) || ''}
+                    </div>
+                    <div>
+                        <strong style={{ color: '#2d3748', fontSize: '18px', display: 'block' }}>
+                            {patient.firstName || 'Brak imienia'} {patient.lastName || 'Brak nazwiska'}
+                        </strong>
+                        <span style={{ fontSize: '13px', color: '#718096' }}>PESEL: {patient.pesel || 'Brak'}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', fontSize: '14px', color: '#4a5568' }}>
+                <div><span style={{ color: '#a0aec0', fontSize: '12px', display: 'block' }}>Data urodzenia</span> {patient.dateOfBirth || 'Brak'}</div>
+                <div><span style={{ color: '#a0aec0', fontSize: '12px', display: 'block' }}>Telefon</span> {patient.phoneNumber || 'Brak'}</div>
+                <div><span style={{ color: '#a0aec0', fontSize: '12px', display: 'block' }}>Email</span> {patient.email || 'Brak'}</div>
+            </div>
+
+            <div style={{ paddingTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                {isAssigned ? (
+                    <button
+                        style={{ padding: '12px 24px', backgroundColor: '#3182ce', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' }}
+                        onClick={() => handleOpenPatientCard(patient)}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2b6cb0'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3182ce'}
+                    >
+                        Otwórz kartę pacjenta
+                    </button>
+                ) : (
+                    <button
+                        style={{ padding: '12px 24px', backgroundColor: '#38a169', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' }}
+                        onClick={() => handleAssignPatient(patient.id)}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2f855a'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#38a169'}
+                    >
+                        + Przypisz do mnie
+                    </button>
+                )}
+            </div>
+        </div>
+    );
 
     return (
-        <div className="login-container" style={{ alignItems: 'flex-start', paddingTop: '50px' }}>
-            <div className="login-card" style={{ maxWidth: '800px', width: '100%' }}>
-                <h2 className="login-title">Panel Pacjentów</h2>
+        <div style={{ minHeight: '100vh', backgroundColor: '#f4f7f6', padding: '20px 5%', fontFamily: "'Inter', system-ui, sans-serif" }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
 
-                {error && <div className="error-message">{error}</div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
+                    <h2 style={{ color: '#2d3748', margin: 0, fontSize: '28px', fontWeight: '700' }}>Panel Pacjentów</h2>
+                </div>
 
-                <div style={{ display: 'flex', marginBottom: '20px', borderBottom: '1px solid #ccc' }}>
+                {error && <div style={{ backgroundColor: '#fed7d7', color: '#c53030', padding: '15px', borderRadius: '12px', marginBottom: '20px' }}>{error}</div>}
+
+                {/* Nowoczesne zakładki - DODANO margin: '0 auto' ORAZ width: '100%' */}
+                <div style={{ display: 'flex', backgroundColor: '#e2e8f0', borderRadius: '16px', padding: '6px', margin: '0 auto 30px auto', maxWidth: '600px', width: '100%' }}>
                     <button
                         onClick={() => setActiveTab('assigned')}
                         style={{
-                            flex: 1, padding: '10px', cursor: 'pointer', border: 'none', background: 'none',
-                            borderBottom: activeTab === 'assigned' ? '3px solid #0056b3' : 'none',
-                            fontWeight: activeTab === 'assigned' ? 'bold' : 'normal',
-                            color: activeTab === 'assigned' ? '#0056b3' : '#666'
+                            flex: 1, padding: '12px 20px', cursor: 'pointer', border: 'none',
+                            backgroundColor: activeTab === 'assigned' ? '#fff' : 'transparent',
+                            borderRadius: '12px',
+                            fontWeight: activeTab === 'assigned' ? '600' : '500',
+                            color: activeTab === 'assigned' ? '#2b6cb0' : '#718096',
+                            boxShadow: activeTab === 'assigned' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            transition: 'all 0.3s ease'
                         }}
                     >
-                        Moi przypisani pacjenci ({assignedPatients.length})
+                        Moi pacjenci ({assignedPatients.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('unassigned')}
                         style={{
-                            flex: 1, padding: '10px', cursor: 'pointer', border: 'none', background: 'none',
-                            borderBottom: activeTab === 'unassigned' ? '3px solid #28a745' : 'none',
-                            fontWeight: activeTab === 'unassigned' ? 'bold' : 'normal',
-                            color: activeTab === 'unassigned' ? '#28a745' : '#666'
+                            flex: 1, padding: '12px 20px', cursor: 'pointer', border: 'none',
+                            backgroundColor: activeTab === 'unassigned' ? '#fff' : 'transparent',
+                            borderRadius: '12px',
+                            fontWeight: activeTab === 'unassigned' ? '600' : '500',
+                            color: activeTab === 'unassigned' ? '#2f855a' : '#718096',
+                            boxShadow: activeTab === 'unassigned' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                            transition: 'all 0.3s ease'
                         }}
                     >
-                        Dostępni do przypisania ({patients.length})
+                        Dostępni ({patients.length})
                     </button>
                 </div>
 
-                {activeTab === 'assigned' && (
-                    <div>
-                        {assignedPatients.length > 0 ? (
-                            <ul style={{ listStyle: 'none', padding: 0 }}>
-                                {assignedPatients.map(patient => (
-                                    <li key={patient.id} style={{ padding: '20px', border: '1px solid #b8daff', backgroundColor: '#f8f9fa', marginBottom: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <strong style={{ color: '#0056b3', fontSize: '18px', display: 'block', borderBottom: '1px solid #dee2e6', paddingBottom: '10px', marginBottom: '10px' }}>
-                                                {patient.firstName || 'Brak imienia'} {patient.lastName || 'Brak nazwiska'}
-                                            </strong>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px', color: '#444' }}>
-                                                <div><strong>PESEL:</strong> {patient.pesel || 'Brak'}</div>
-                                                <div><strong>Data ur.:</strong> {patient.dateOfBirth || 'Brak'}</div>
-                                                <div><strong>Telefon:</strong> {patient.phoneNumber || 'Brak'}</div>
-                                                <div><strong>Email:</strong> {patient.email || 'Brak'}</div>
-                                            </div>
-                                        </div>
-                                        <div style={{ marginLeft: '20px' }}>
-                                            <button
-                                                className="login-button"
-                                                style={{ width: 'auto', padding: '10px 20px', margin: 0, backgroundColor: '#0056b3' }}
-                                                onClick={() => handleOpenPatientCard(patient)}
-                                            >
-                                                Otwórz kartę
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>Nie masz jeszcze przypisanych żadnych pacjentów.</p>
-                        )}
-                    </div>
-                )}
+                {/* Siatka pacjentów */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+                    {activeTab === 'assigned' && (
+                        assignedPatients.length > 0
+                            ? assignedPatients.map(p => renderPatientCard(p, true))
+                            : <p style={{ color: '#a0aec0', fontSize: '16px', gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>Nie masz przypisanych pacjentów.</p>
+                    )}
 
-                {activeTab === 'unassigned' && (
-                    <div>
-                        {patients.length > 0 ? (
-                            <ul style={{ listStyle: 'none', padding: 0 }}>
-                                {patients.map(patient => (
-                                    <li key={patient.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #eee', marginBottom: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <strong style={{ fontSize: '18px', color: '#333', display: 'block', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '10px' }}>
-                                                {patient.firstName || 'Brak imienia'} {patient.lastName || 'Brak nazwiska'}
-                                            </strong>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px', color: '#555' }}>
-                                                <div><strong>PESEL:</strong> {patient.pesel || 'Brak'}</div>
-                                                <div><strong>Data ur.:</strong> {patient.dateOfBirth || 'Brak'}</div>
-                                                <div><strong>Telefon:</strong> {patient.phoneNumber || 'Brak'}</div>
-                                                <div><strong>Email:</strong> {patient.email || 'Brak'}</div>
-                                                <div style={{ gridColumn: '1 / span 2', marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed #eee' }}>
-                                                    <strong>Adres:</strong> {patient.address || 'Brak'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style={{ marginLeft: '20px' }}>
-                                            <button
-                                                className="login-button"
-                                                style={{ width: 'auto', padding: '10px 20px', marginTop: 0, backgroundColor: '#28a745' }}
-                                                onClick={() => handleAssignPatient(patient.id)}
-                                            >
-                                                + Przypisz do mnie
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>Wszyscy pacjenci w systemie są już do Ciebie przypisani lub brak pacjentów w ogóle!</p>
-                        )}
-                    </div>
-                )}
+                    {activeTab === 'unassigned' && (
+                        patients.length > 0
+                            ? patients.map(p => renderPatientCard(p, false))
+                            : <p style={{ color: '#a0aec0', fontSize: '16px', gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>Brak nowych pacjentów do przypisania.</p>
+                    )}
+                </div>
 
             </div>
         </div>
