@@ -33,7 +33,7 @@ public class VisitAggregateService {
                 );
     }
 
-    private Mono<MedicalStaffClientResponse> fetchMedicalStaff(UUID id) {
+    private Mono<MedicalStaffClientResponse> fetchMedicalStaff(String id) {
         return medicalStaffClient.getMedicalStaff(id)
                 .onErrorResume(ex -> Mono.just(
                         MedicalStaffClientResponse.unfetched(id)

@@ -17,7 +17,7 @@ interface Patient {
 
 const PatientDashboard = () => {
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [assignedPatientIds, setAssignedPatientIds] = useState<string[]>([]);
+    const [assignedPatients, setAssignedPatients] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
 
     const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +40,8 @@ const PatientDashboard = () => {
     const doctorId = getDoctorId();
 
     const PATIENTS_API_URL = 'http://localhost:8088/api/v1/patients/allPatients';
-    const STAFF_API_BASE_URL = 'http://localhost:8082/api/v1/staff';
+    const ASSIGNED_PATIENTS_API_URL = `http://localhost:8080/api/v1/gateway/dashboard/staff/${doctorId}/patients`;
+    const STAFF_API_BASE_URL = `http://localhost:8082/api/v1/staff`;
 
     useEffect(() => {
         if (!token || !doctorId) {
@@ -51,13 +52,13 @@ const PatientDashboard = () => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [patientsRes, assignedIdsRes] = await Promise.all([
+                const [patientsRes, assignedPatientsRes] = await Promise.all([
                     axios.get(PATIENTS_API_URL, { headers: { Authorization: `Bearer ${token}` } })
                         .catch(err => {
                             if (err.response && err.response.status === 404) return { data: [] };
                             throw err;
                         }),
-                    axios.get(`${STAFF_API_BASE_URL}/${doctorId}/patients`, { headers: { Authorization: `Bearer ${token}` } })
+                    axios.get(`${ASSIGNED_PATIENTS_API_URL}`, { headers: {Authorization: `Bearer ${token}`}})
                         .catch(err => {
                             if (err.response && err.response.status === 404) return { data: [] };
                             throw err;
@@ -65,7 +66,7 @@ const PatientDashboard = () => {
                 ]);
 
                 setPatients(patientsRes.data);
-                setAssignedPatientIds(assignedIdsRes.data);
+                setAssignedPatients(assignedPatientsRes.data);
             } catch (err) {
                 console.error("Błąd pobierania danych:", err);
                 setError("Nie udało się pobrać danych pacjentów.");
@@ -83,7 +84,7 @@ const PatientDashboard = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            setAssignedPatientIds(prev => [...prev, patientId]);
+            setAssignedPatients(prev => [...prev, patientId]);
             alert('Pacjent został pomyślnie przypisany!');
         } catch (err) {
             console.error("Błąd przypisywania pacjenta:", err);
@@ -93,8 +94,7 @@ const PatientDashboard = () => {
 
     if (isLoading) return <div className="login-container">Ładowanie pacjentów...</div>;
 
-    const assignedPatients = patients.filter(p => assignedPatientIds.includes(p.id));
-    const unassignedPatients = patients.filter(p => !assignedPatientIds.includes(p.id));
+    const unassignedPatients = patients.filter(p => !assignedPatients.some(assigned => assigned.id === p.id));
 
     return (
         <div className="login-container" style={{ alignItems: 'flex-start', paddingTop: '50px' }}>

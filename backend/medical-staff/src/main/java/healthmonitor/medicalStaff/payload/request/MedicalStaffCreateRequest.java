@@ -6,7 +6,10 @@ import jakarta.validation.constraints.Pattern;
 
 import java.util.List;
 
-public record MedicalStaffRequest(
+public record MedicalStaffCreateRequest(
+        @NotBlank
+        String id,
+
         @NotBlank
         String firstName,
 

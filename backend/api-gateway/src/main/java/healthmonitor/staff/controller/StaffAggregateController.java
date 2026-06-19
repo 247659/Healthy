@@ -1,25 +1,21 @@
 package healthmonitor.staff.controller;
 
-import healthmonitor.staff.service.StaffAggregateService;
 import healthmonitor.payload.PatientClientResponse;
+import healthmonitor.staff.service.StaffAggregateService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/gateway")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class StaffAggregateController {
 
     private final StaffAggregateService staffAggregateService;
 
     @GetMapping("/dashboard/staff/{staffId}/patients")
-    public Flux<PatientClientResponse> getAssignedPatients(@PathVariable UUID staffId) {
+    public Flux<PatientClientResponse> getAssignedPatients(@PathVariable String staffId) {
         return staffAggregateService.getAssignedPatient(staffId);
     }
 }

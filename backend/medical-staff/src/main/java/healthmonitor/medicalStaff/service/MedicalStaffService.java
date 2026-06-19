@@ -1,23 +1,23 @@
 package healthmonitor.medicalStaff.service;
 
+import healthmonitor.medicalStaff.payload.request.MedicalStaffCreateRequest;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 
 import java.util.List;
-import java.util.UUID;
 
 public interface MedicalStaffService {
     List<MedicalStaffResponse> getAll();
 
-    MedicalStaffResponse getById(UUID id);
+    MedicalStaffResponse getById(String id);
 
-    MedicalStaffResponse save(MedicalStaffRequest request);
+    MedicalStaffResponse save(MedicalStaffCreateRequest request);
 
-    void delete(UUID id);
+    void delete(String id);
 
-    MedicalStaffResponse update(UUID id, MedicalStaffRequest request);
+    MedicalStaffResponse update(String id, MedicalStaffRequest request);
 
-    void assignPatient(UUID id, String patientId);
+    void assignPatient(String id, String patientId);
 
-    List<String> getPatientsIds(UUID id);
+    List<String> getPatientsIds(String id);
 }

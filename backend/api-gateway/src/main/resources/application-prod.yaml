@@ -13,7 +13,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak-server:8080/realms/healthmonitor-realm
+          issuer-uri: http://keycloak-server:9090/realms/healthmonitor-realm
 
 medical-staff-service:
   url: http://medical-staff-service

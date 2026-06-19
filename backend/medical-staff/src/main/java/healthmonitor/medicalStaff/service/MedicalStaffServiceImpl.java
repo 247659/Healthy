@@ -4,6 +4,7 @@ import healthmonitor.client.PatientClient;
 import healthmonitor.medicalStaff.mapper.MedicalStaffMapper;
 import healthmonitor.medicalStaff.model.MedicalStaff;
 import healthmonitor.medicalStaff.model.PatientAssignment;
+import healthmonitor.medicalStaff.payload.request.MedicalStaffCreateRequest;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.repository.MedicalStaffRepository;
@@ -15,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,14 +34,14 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     }
 
     @Override
-    public MedicalStaffResponse getById(UUID id) {
+    public MedicalStaffResponse getById(String id) {
         MedicalStaff medicalStaff = getEntity(id);
         return medicalStaffMapper.toResponse(medicalStaff);
     }
 
     @Override
     @Transactional
-    public MedicalStaffResponse save(MedicalStaffRequest request) {
+    public MedicalStaffResponse save(MedicalStaffCreateRequest request) {
         MedicalStaff medicalStaff = medicalStaffMapper.toEntity(request);
         MedicalStaff medicalStaffSaved = medicalStaffRepository.save(medicalStaff);
         return medicalStaffMapper.toResponse(medicalStaffSaved);
@@ -49,14 +49,14 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
 
     @Override
     @Transactional
-    public void delete(UUID id) {
+    public void delete(String id) {
         MedicalStaff medicalStaff = getEntity(id);
         medicalStaffRepository.delete(medicalStaff);
     }
 
     @Override
     @Transactional
-    public MedicalStaffResponse update(UUID id, MedicalStaffRequest request) {
+    public MedicalStaffResponse update(String id, MedicalStaffRequest request) {
         MedicalStaff medicalStaff = getEntity(id);
         medicalStaffMapper.updateEntity(medicalStaff, request);
         return medicalStaffMapper.toResponse(medicalStaff);
@@ -64,7 +64,7 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
 
     @Override
     @Transactional
-    public void assignPatient(UUID id, String patientId) {
+    public void assignPatient(String id, String patientId) {
         patientClient.getPatient(patientId);
         MedicalStaff medicalStaff = getEntity(id);
         boolean alreadyAssigned = medicalStaff.getPatientAssignments().stream()
@@ -82,7 +82,7 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     }
 
     @Override
-    public List<String> getPatientsIds(UUID id) {
+    public List<String> getPatientsIds(String id) {
         MedicalStaff medicalStaff = medicalStaffRepository.findWithPatientAssignmentsById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
 
@@ -91,7 +91,7 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
                 .toList();
     }
 
-    private MedicalStaff getEntity(UUID id) {
+    private MedicalStaff getEntity(String id) {
         return medicalStaffRepository.findWithSpecializationById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
     }

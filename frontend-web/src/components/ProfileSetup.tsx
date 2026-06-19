@@ -49,7 +49,7 @@ const ProfileSetup = () => {
         const token = localStorage.getItem('access_token');
 
         try {
-            await axios.post('http://localhost:8082/api/v1/staff/save', {
+            await axios.post('http://localhost:8082/api/v1/staff', {
                 id: id,
                 firstName: firstName,
                 lastName: lastName,

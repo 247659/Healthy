@@ -5,7 +5,6 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "medical_staff")
@@ -15,11 +14,7 @@ import java.util.UUID;
 @Setter
 public class MedicalStaff {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
-
-    @Column(nullable = false)
-    private String keycloakUserId;
+    private String id;
 
     @Column(nullable = false)
     private String firstName;

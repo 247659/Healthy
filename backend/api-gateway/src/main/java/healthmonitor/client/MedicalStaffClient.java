@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.UUID;
 
 @Component
 public class MedicalStaffClient {
@@ -23,7 +22,7 @@ public class MedicalStaffClient {
         this.webClient = webClientBuilder.baseUrl(url).build();
     }
 
-    public Mono<MedicalStaffClientResponse> getMedicalStaff(UUID id) {
+    public Mono<MedicalStaffClientResponse> getMedicalStaff(String id) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v1/staff/{id}").build(id))
                 .retrieve()
@@ -39,7 +38,7 @@ public class MedicalStaffClient {
                 .timeout(Duration.ofSeconds(10));
     }
 
-    public Flux<String> getAssignedPatientIds(UUID id) {
+    public Flux<String> getAssignedPatientIds(String id) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder.path("/api/v1/staff/{id}/patients").build(id))
                 .retrieve()

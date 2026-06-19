@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record VisitClientResponse(
         UUID id,
-        UUID medicalStaffId,
+        String medicalStaffId,
         String patientId,
         LocalDateTime visitTime,
         Integer durationMinutes,

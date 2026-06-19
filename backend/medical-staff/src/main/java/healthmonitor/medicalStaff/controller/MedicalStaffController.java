@@ -1,15 +1,16 @@
 package healthmonitor.medicalStaff.controller;
 
+import healthmonitor.medicalStaff.payload.request.MedicalStaffCreateRequest;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.service.MedicalStaffService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,34 +25,34 @@ public class MedicalStaffController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MedicalStaffResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<MedicalStaffResponse> getById(@PathVariable String id) {
         return ResponseEntity.ok(medicalStaffService.getById(id));
     }
 
-    @PostMapping("/save")
-    public ResponseEntity<MedicalStaffResponse> save(@Valid @RequestBody MedicalStaffRequest request) {
+    @PostMapping
+    public ResponseEntity<MedicalStaffResponse> save(@Valid @RequestBody MedicalStaffCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(medicalStaffService.save(request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         medicalStaffService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MedicalStaffResponse> update(@PathVariable UUID id, @Valid @RequestBody MedicalStaffRequest request) {
+    public ResponseEntity<MedicalStaffResponse> update(@PathVariable String id, @Valid @RequestBody MedicalStaffRequest request) {
         return ResponseEntity.ok(medicalStaffService.update(id, request));
     }
 
     @PostMapping("/{id}/assign/{patientId}")
-    public ResponseEntity<Void> assignPatient(@PathVariable UUID id, @PathVariable String patientId) {
+    public ResponseEntity<Void> assignPatient(@PathVariable String id, @PathVariable String patientId) {
         medicalStaffService.assignPatient(id, patientId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/patients")
-    public ResponseEntity<List<String>> getAllPatientIds(@PathVariable UUID id) {
+    public ResponseEntity<List<String>> getAllPatientIds(@PathVariable String id) {
         return ResponseEntity.ok(medicalStaffService.getPatientsIds(id));
     }
 }

@@ -52,9 +52,13 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: password
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+      KC_HTTP_PORT: 9090
+      KC_HTTP_ENABLED: true
     command: start-dev --import-realm
     ports:
-      - "9090:8080"
+      - "9090:9090"
     volumes:
       - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
     networks:
@@ -260,6 +264,19 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     depends_on:
       - loki
+    networks:
+      - backend
+
+  frontend-web:
+    build:
+      context: ../../frontend-web
+    volumes:
+      - ../../frontend-web:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     networks:
       - backend
 
