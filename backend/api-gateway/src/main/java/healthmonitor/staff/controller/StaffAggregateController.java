@@ -9,7 +9,6 @@ import reactor.core.publisher.Flux;
 @RestController
 @RequestMapping("/api/v1/gateway")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class StaffAggregateController {
 
     private final StaffAggregateService staffAggregateService;
