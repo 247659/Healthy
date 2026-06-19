@@ -20,4 +20,6 @@ public interface MedicalStaffService {
     void assignPatient(String id, String patientId);
 
     List<String> getPatientsIds(String id);
+
+    List<String> getDoctorsIdsByPatientId(String patientId);
 }
