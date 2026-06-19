@@ -14,6 +14,10 @@ public class RabbitMQConfig {
 
     public static final String QUEUE_NAME = "patient.registration.queue";
     public static final String AUTH_EXCHANGE = "auth.exchange";
+    public static final String IOT_EXCHANGE = "iot.vitals.exchange";
+    public static final String QUEUE_NAME_VITALS = "vitals.queue";
+    public static final String VITALS_ROUTING_KEY = "vitals.threshold.created";
+
 
     @Bean
     public Queue patientRegistrationQueue() {
@@ -29,6 +33,21 @@ public class RabbitMQConfig {
     @Bean
     public Binding binding(Queue patientRegistrationQueue, TopicExchange authExchange) {
         return BindingBuilder.bind(patientRegistrationQueue).to(authExchange).with("user.registered.patient");
+    }
+
+    @Bean
+    public TopicExchange iotExchange() {
+        return new TopicExchange(IOT_EXCHANGE);
+    }
+
+    @Bean
+    public Queue patientThresholdQueue() {
+        return new Queue(QUEUE_NAME_VITALS, true);
+    }
+
+    @Bean
+    public Binding iotBinding(Queue patientThresholdQueue, TopicExchange iotExchange) {
+        return BindingBuilder.bind(patientThresholdQueue).to(iotExchange).with(VITALS_ROUTING_KEY);
     }
 
     @Bean

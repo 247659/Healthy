@@ -7,11 +7,18 @@ import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import healthmonitor.vitals.config.RabbitMQConfig;
 import healthmonitor.vitals.dto.VitalSignsDto;
+import healthmonitor.vitals.dto.VitalThresholdDto;
+import healthmonitor.vitals.event.VitalThresholdEvent;
+import healthmonitor.vitals.mapper.VitalThresholdMapper;
+import healthmonitor.vitals.model.VitalThreshold;
+import healthmonitor.vitals.repository.VitalThresholdRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,6 +30,8 @@ import java.util.Objects;
 @Slf4j
 public class VitalsServiceImpl implements VitalsService {
 
+    private final VitalThresholdMapper vitalThresholdMapper;
+    private final VitalThresholdRepository vitalThresholdRepository;
     private final InfluxDBClient influxDBClient;
 
     @Value("${influxdb.bucket}")
@@ -107,5 +116,28 @@ public class VitalsServiceImpl implements VitalsService {
         } catch (Exception e) {
             log.error("Error during processing vitals: {}", e.getMessage());
         }
+    }
+
+    @Override
+    @RabbitListener(queues = RabbitMQConfig.THRESHOLD_QUEUE)
+    public void saveThreshold(VitalThresholdEvent event) {
+        VitalThreshold vitalThreshold = new VitalThreshold();
+        vitalThreshold.setPatientId(event.patientId());
+        vitalThresholdRepository.save(vitalThreshold);
+    }
+
+    @Override
+    public VitalThresholdDto update(String patientId, VitalThresholdDto request) {
+        VitalThreshold vitalThreshold = vitalThresholdMapper.toEntity(request);
+        vitalThreshold.setPatientId(patientId);
+        VitalThreshold savedVitalThreshold = vitalThresholdRepository.save(vitalThreshold);
+        return vitalThresholdMapper.toDto(savedVitalThreshold);
+    }
+
+    @Override
+    public VitalThresholdDto getByPatientId(String patientId) {
+        return vitalThresholdRepository.findById(patientId)
+                .map(vitalThresholdMapper::toDto)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient's vital threshold not found"));
     }
 }

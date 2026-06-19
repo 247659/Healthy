@@ -5,9 +5,11 @@ import healthmonitor.exception.exceptions.PatientNotFoundException;
 import healthmonitor.mapper.PatientMapper;
 import healthmonitor.model.Patient;
 import healthmonitor.model.dto.PatientDto;
+import healthmonitor.model.event.PatientThresholdEvent;
 import healthmonitor.repository.PatientRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +22,7 @@ public class StandardPatientService implements PatientService {
 
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
 
     @Override
@@ -41,6 +44,7 @@ public class StandardPatientService implements PatientService {
     public PatientDto save(PatientDto request) {
         Patient patient = patientMapper.toEntity(request);
         Patient savedPatient = patientRepository.save(patient);
+        applicationEventPublisher.publishEvent(new PatientThresholdEvent(savedPatient.getId()));
         return patientMapper.toDto(savedPatient);
     }
 
