@@ -1,7 +1,7 @@
 package healthmonitor.service;
 
 import healthmonitor.config.RabbitMQConfig;
-import healthmonitor.model.UserRegisteredEvent;
+import healthmonitor.model.event.UserRegisteredEvent;
 import healthmonitor.model.Patient;
 import healthmonitor.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
