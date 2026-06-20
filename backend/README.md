@@ -47,7 +47,7 @@ To pass through the API Gateway, you need to configure Postman to automatically 
 ### How to Simulate iot measurement
 To simulate iot measuremnt flow, create containers by Docker Compose:
 ```
-docker-compose up --d
+docker-compose up -d
 ```
 
 To get realtime measurement simulation in case testing ML working use command with custom params:
