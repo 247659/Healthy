@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { type Patient } from './PatientDetails';
+import {medicalStaffService} from "../api/staffClient.ts";
+import {gatewayService} from "../api/gatewayClient.ts";
+import type {Patient} from "../types/patient.ts";
 
 const PatientDashboard = () => {
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -27,9 +28,6 @@ const PatientDashboard = () => {
 
     const doctorId = getDoctorId();
 
-    const AGGREGATED_PATIENTS_API_URL = `http://localhost:8080/api/v1/gateway/dashboard/staff/${doctorId}/patients`;
-    const STAFF_API_BASE_URL = `http://localhost:8082/api/v1/staff`;
-
     useEffect(() => {
         if (!token || !doctorId) {
             navigate('/');
@@ -40,20 +38,12 @@ const PatientDashboard = () => {
             setIsLoading(true);
             try {
                 const [patientsRes, assignedPatientsRes] = await Promise.all([
-                    axios.get(`${AGGREGATED_PATIENTS_API_URL}/unassigned`, { headers: { Authorization: `Bearer ${token}` } })
-                        .catch(err => {
-                            if (err.response && err.response.status === 404) return { data: [] };
-                            throw err;
-                        }),
-                    axios.get(`${AGGREGATED_PATIENTS_API_URL}/assigned`, { headers: {Authorization: `Bearer ${token}`}})
-                        .catch(err => {
-                            if (err.response && err.response.status === 404) return { data: [] };
-                            throw err;
-                        })
+                    await gatewayService.getUnassignedPatients(doctorId),
+                    await gatewayService.getAssignedPatients(doctorId)
                 ]);
 
-                setPatients(Array.isArray(patientsRes.data) ? patientsRes.data : []);
-                setAssignedPatients(Array.isArray(assignedPatientsRes.data) ? assignedPatientsRes.data : []);
+                setPatients(Array.isArray(patientsRes) ? patientsRes : []);
+                setAssignedPatients(Array.isArray(assignedPatientsRes) ? assignedPatientsRes : []);
             } catch (err) {
                 console.error("Błąd pobierania danych:", err);
                 setError("Nie udało się pobrać danych pacjentów.");
@@ -67,9 +57,7 @@ const PatientDashboard = () => {
 
     const handleAssignPatient = async (patientId: string) => {
         try {
-            await axios.post(`${STAFF_API_BASE_URL}/${doctorId}/assign/${patientId}`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await medicalStaffService.assignPatient(doctorId, patientId);
 
             const patientToAdd = patients.find(p => p.id === patientId);
             if (patientToAdd) {

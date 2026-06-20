@@ -1,14 +1,9 @@
 // frontend/web/src/components/PatientList.tsx
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import './PatientList.css';
+import {patientService} from "../api/patientClient.ts";
+import type {Patient} from "../types/patient.ts";
 
-interface Patient {
-    id: string;
-    firstName: string;
-    lastName: string;
-    pesel: string;
-}
 
 const PatientList = () => {
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -23,12 +18,9 @@ const PatientList = () => {
         if (!token) return;
 
         try {
-            const response = await axios.get('http://localhost:8088/api/v1/patients/allPatients', {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            setPatients(response.data);
+            const response = await patientService.getAllPatients();
+
+            setPatients(response);
         } catch (err) {
             console.error(err);
             setError('Błąd pobierania listy pacjentów. Brak uprawnień lub błąd serwera.');

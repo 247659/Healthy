@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import type {MedicalStaff} from "../types/medicalStaff.ts";
+import {medicalStaffService} from "../api/staffClient.ts";
 
 const ProfileSetup = () => {
     const [id, setId] = useState('');
@@ -39,10 +40,8 @@ const ProfileSetup = () => {
         setError('');
         setIsLoading(true);
 
-        const token = localStorage.getItem('access_token');
-
         try {
-            await axios.post('http://localhost:8082/api/v1/staff', {
+            const data: MedicalStaff = {
                 id: id,
                 firstName: firstName,
                 lastName: lastName,
@@ -55,9 +54,8 @@ const ProfileSetup = () => {
                         certificateNumber: specCertificateNumber
                     }
                 ]
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            }
+            await medicalStaffService.setupProfile(data)
 
             navigate('/patients');
         } catch (err: any) {

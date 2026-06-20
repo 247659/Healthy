@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import {medicalStaffService} from "../api/staffClient.ts";
+import type {MedicalStaff} from "../types/medicalStaff.ts";
 
 const StaffProfile = () => {
     const { id } = useParams<{ id: string }>();
@@ -21,23 +22,19 @@ const StaffProfile = () => {
     const [successMessage, setSuccessMessage] = useState('');
 
     const token = localStorage.getItem('access_token');
-    const API_URL = `http://localhost:8082/api/v1/staff/${id}`;
 
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await axios.get(API_URL, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await medicalStaffService.getMedicalStaffInformationById(id)
 
-                const data = response.data;
-                setFirstName(data.firstName);
-                setLastName(data.lastName);
-                setPhoneNumber(data.phoneNumber);
-                setLicenseNumber(data.licenseNumber);
+                setFirstName(response.firstName);
+                setLastName(response.lastName);
+                setPhoneNumber(response.phoneNumber);
+                setLicenseNumber(response.licenseNumber);
 
-                if (data.specializations && data.specializations.length > 0) {
-                    const spec = data.specializations[0];
+                if (response.specializations && response.specializations.length > 0) {
+                    const spec = response.specializations[0];
                     setSpecName(spec.name);
                     setSpecObtainedDate(spec.obtainedDate);
                     setSpecCertificateNumber(spec.certificateNumber);
@@ -53,7 +50,7 @@ const StaffProfile = () => {
         if (id) {
             fetchProfile();
         }
-    }, [id, API_URL, token]);
+    }, [id, token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,24 +59,25 @@ const StaffProfile = () => {
         setIsLoading(true);
 
         try {
-            await axios.put(API_URL, {
-                firstName: firstName,
-                lastName: lastName,
-                phoneNumber: phoneNumber,
-                licenseNumber: licenseNumber,
-                specializations: [
-                    {
-                        name: specName,
-                        obtainedDate: specObtainedDate,
-                        certificateNumber: specCertificateNumber
-                    }
-                ]
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            setSuccessMessage('Profil został pomyślnie zaktualizowany!');
-            setIsEditing(false);
+            if (id) {
+                const data: MedicalStaff = {
+                    id: id,
+                    firstName: firstName,
+                    lastName: lastName,
+                    phoneNumber: phoneNumber,
+                    licenseNumber: licenseNumber,
+                    specializations: [
+                        {
+                            name: specName,
+                            obtainedDate: specObtainedDate,
+                            certificateNumber: specCertificateNumber
+                        }
+                    ]
+                }
+                await medicalStaffService.editProfile(id, data)
+                setSuccessMessage('Profil został pomyślnie zaktualizowany!');
+                setIsEditing(false);
+            }
         } catch (err: any) {
             console.error('Błąd aktualizacji:', err);
             const backendMsg = err.response?.data?.message || 'Sprawdź poprawność danych (np. 7 cyfr dla numerów).';

@@ -1,18 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-export interface Patient {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    pesel?: string;
-    phoneNumber?: string;
-    address?: string;
-    dateOfBirth?: string;
-}
+import type {Patient} from "../types/patient.ts";
+import {vitalService} from "../api/vitalClient.ts";
 
 interface VitalSigns {
     patientId?: string;
@@ -40,8 +30,6 @@ const PatientDetails = () => {
     const [latestVitals, setLatestVitals] = useState<VitalSigns | null>(null);
     const [isVitalsLoading, setIsVitalsLoading] = useState(true);
 
-    const VITALS_API_BASE_URL = `http://localhost:8080/api/v1/vital-signs/patient`;
-
     useEffect(() => {
         if (!patient || !token) {
             navigate('/patients');
@@ -52,10 +40,8 @@ const PatientDetails = () => {
         const fetchHistory = async () => {
             setIsVitalsLoading(true);
             try {
-                const res = await axios.get(`${VITALS_API_BASE_URL}/${patient.id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = Array.isArray(res.data) ? res.data : [];
+                const res = await vitalService.getHistory(patient.id)
+                const data = Array.isArray(res) ? res : [];
                 setHistoryVitals(data);
 
                 // Od razu ustawiamy najnowszy z historii jako "live", żeby nie czekać 5 sekund na pierwszy render
@@ -75,10 +61,9 @@ const PatientDetails = () => {
                 // Obliczamy czas sprzed minuty (format ISO)
                 const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
 
-                const res = await axios.get(`${VITALS_API_BASE_URL}/${patient.id}?from=${oneMinuteAgo}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = Array.isArray(res.data) ? res.data : [];
+                const res = await vitalService.getHistoryByTime(patient.id, oneMinuteAgo)
+
+                const data = Array.isArray(res) ? res : [];
 
                 if (data.length > 0) {
                     setLatestVitals(data[0]); // Zawsze bierzemy najświeższy z odpowiedzi
