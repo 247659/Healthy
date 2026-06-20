@@ -2,13 +2,13 @@ import type {
   LoginRequest,
   Token,
 } from '../types/auth.ts';
-import { apiClient } from './apiClient.ts';
+import {apiNoAuth} from './api.ts';
 
 
 export const authService = {
 
   login: async (data: LoginRequest): Promise<Token> => {
-    const response = await apiClient.post<Token>(
+    const response = await apiNoAuth.post<Token>(
       '/auth/loginDoctor',
       data,
     );
@@ -16,7 +16,7 @@ export const authService = {
   },
 
   logout: async (data: string | null) => {
-     const response = await apiClient.post(
+     const response = await apiNoAuth.post(
        '/auth/logout',
        {
          refreshToken : data
