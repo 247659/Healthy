@@ -5,8 +5,7 @@ import logging
 import os
 
 try:
-    import tensorflow.keras.models
-
+    from tensorflow.keras.models import load_model
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
@@ -14,7 +13,7 @@ except ImportError:
 
 
 class VitalsAnomalyDetector:
-    def __init__(self, models_dir: str = "/models/"):
+    def __init__(self, models_dir: str = os.getenv("MODELS_DIR", "./models/")):
         self.models_dir = models_dir
         self.loaded_models = {}
         self.global_model_path = os.path.join(models_dir, "global_isolation_forest.pkl")
@@ -22,6 +21,8 @@ class VitalsAnomalyDetector:
         self.use_lstm = False
         self.TIME_STEPS = 10
         self.patient_buffers = {}
+        print("MODELS DIR")
+        print(models_dir)
 
         if TENSORFLOW_AVAILABLE:
             try:
