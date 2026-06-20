@@ -19,7 +19,7 @@ async def main():
     repository = VitalsRepository(influx_client)
     trainer = AITrainer(repository)
 
-    await trainer.train_global_LSTM()
+    await trainer.train_global_lstm()
 
     print("\n✅ Trening zakończony! Zrestartuj 'ai_worker.py', aby załadował nowy model LSTM do RAM.")
 
