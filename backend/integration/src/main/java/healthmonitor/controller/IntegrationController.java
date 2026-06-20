@@ -2,16 +2,16 @@ package healthmonitor.controller;
 
 import healthmonitor.config.RabbitMQConfig;
 import healthmonitor.dto.VitalSignsDto;
+import healthmonitor.service.IntegrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/integration")
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class IntegrationController {
 
     private final RabbitTemplate rabbitTemplate;
+    private final IntegrationService integrationService;
 
     @PostMapping
     public ResponseEntity<Void> receiveVitals(@Valid @RequestBody VitalSignsDto dto) {
@@ -28,5 +29,11 @@ public class IntegrationController {
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "vitals.incoming", dto);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+    }
+
+    @PostMapping(value = "batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> receiveVitalsBatch(@RequestParam("file") MultipartFile file) {
+        integrationService.processBatchMeasurements(file);
+        return ResponseEntity.noContent().build();
     }
 }

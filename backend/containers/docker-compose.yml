@@ -312,8 +312,11 @@ services:
       - ../machine-learing/models:/app/models
 
   simulator:
+    build: ../simulator
     image: iot-simulator:latest
     profiles: ["simulation"]
+    networks:
+      - backend
     environment:
       - API_URL=http://integration:8083/api/v1/integration
 

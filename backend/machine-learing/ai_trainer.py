@@ -60,25 +60,42 @@ class AITrainer:
     async def train_global_LSTM(self):
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=7)
-        history = await self.repository.get_all_measurements(start_time, end_time)
-        if len(history) < 1000:
-            print(f"⚠️ [LSTM Trainer] Zbyt mało danych ({len(history)}). Wymagane min. 1000.")
+
+        # Pobieranie danych chunkami (np. po 24 godziny)
+        chunk_size = timedelta(days=1)
+        current_start = start_time
+        all_raw_data = []
+
+        print(f"🚀 [LSTM Trainer] Rozpoczynam pobieranie danych w chunkach...")
+
+        while current_start < end_time:
+            current_end = min(current_start + chunk_size, end_time)
+            print(f"📡 Pobieranie danych: {current_start} do {current_end}")
+
+            # Pobierz chunk danych
+            chunk = await self.repository.get_all_measurements(current_start, current_end)
+
+            for record in chunk:
+                m = record['measurements']
+                all_raw_data.append([
+                    m['heartRate'],
+                    m['bloodPressure']['systolic'],
+                    m['bloodPressure']['diastolic'],
+                    m['temperature'],
+                    m['spO2']
+                ])
+
+            current_start = current_end
+
+        if len(all_raw_data) < 1000:
+            print(f"⚠️ [LSTM Trainer] Zbyt mało danych ({len(all_raw_data)}). Wymagane min. 1000.")
             return None
 
-        raw_data = []
-        for record in history:
-            m = record['measurements']
-            raw_data.append([
-                m['heartRate'],
-                m['bloodPressure']['systolic'],
-                m['bloodPressure']['diastolic'],
-                m['temperature'],
-                m['spO2']
-            ])
-
-        data_array = np.array(raw_data)
+        # Dalsza część treningu bez zmian
+        data_array = np.array(all_raw_data)
         scaler = MinMaxScaler()
         scaled_data = scaler.fit_transform(data_array)
+
         time_steps = 10
         X_train = self.create_sequences(scaled_data, time_steps)
         print(f"📊 [LSTM Trainer] Kształt danych treningowych: {X_train.shape}")

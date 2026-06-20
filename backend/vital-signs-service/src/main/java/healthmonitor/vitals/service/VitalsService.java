@@ -18,4 +18,6 @@ public interface VitalsService {
     VitalThresholdDto update(String patientId, VitalThresholdDto request);
 
     VitalThresholdDto getByPatientId(String patientId);
+
+    void processAndSaveVitalsBatch(List<VitalSignsDto> batch);
 }

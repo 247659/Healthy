@@ -7,13 +7,6 @@ import logging
 from datetime import datetime, timezone, timedelta
 import os
 
-# Konfiguracja środowiskowa (ENV)
-# Pobieramy adresy z systemu, a jeśli ich nie ma (np. odpalasz z Windowsa), używamy domyślnego localhosta.
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL",
-                         "http://localhost:9090/realms/healthmonitor-realm/protocol/openid-connect/token")
-CLIENT_ID = os.getenv("CLIENT_ID", "iot-device-simulator")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET", "xpbccFrxtYy4Fyrb5HdqK2EjjQ7hOPZR")
-
 # Konfiguracja loggera
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -95,24 +88,6 @@ class PatientSimulator:
         }
 
 
-def get_access_token():
-    """Pobiera Token JWT z Keycloaka dla urządzenia (M2M)"""
-    payload = {
-        "grant_type": "client_credentials",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET
-    }
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-
-    try:
-        response = requests.post(KEYCLOAK_URL, data=payload, headers=headers)
-        response.raise_for_status()
-        return response.json().get("access_token")
-    except Exception as e:
-        logging.error(f"Nie udało się pobrać tokena z Keycloak ({KEYCLOAK_URL}): {e}")
-        return None
-
-
 def run_realtime(args):
     """Wysyłanie danych na żywo co X sekund przez HTTP"""
     logging.info(f"--- TRYB REALTIME ---")
@@ -120,16 +95,8 @@ def run_realtime(args):
 
     patient = PatientSimulator(args.patient_id)
 
-    token = get_access_token()
-    if not token:
-        logging.error("Zatrzymanie symulatora z powodu braku autoryzacji.")
-        return
-
-    # Tworzymy nagłówek z tokenem
-    api_headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    # Nagłówek dla zwykłego JSON
+    api_headers = {"Content-Type": "application/json"}
 
     try:
         while True:
@@ -140,10 +107,6 @@ def run_realtime(args):
                 response = requests.post(args.url, json=payload, timeout=2, headers=api_headers)
                 if response.status_code in [200, 201, 202]:
                     logging.info(f"Wysłano dane (Anomalia: {is_anomaly}). Status: {response.status_code}")
-                elif response.status_code == 401:
-                    logging.warning("Token wygasł! Próbuję pobrać nowy...")
-                    token = get_access_token()
-                    api_headers["Authorization"] = f"Bearer {token}"
                 else:
                     logging.warning(f"Serwer zwrócił status: {response.status_code} - {response.text}")
 
@@ -181,55 +144,45 @@ def run_batch(args):
             current_time += timedelta(seconds=args.interval)
 
     logging.info(f"[SUKCES] Wygenerowano {total_records} rekordów do pliku: {filename}")
-    logging.info(f"W tym pomiarów z trwającą anomalią: {anomaly_count} (~{(anomaly_count / total_records) * 100:.1f}%)")
 
     # KROK 2: Wysłanie pliku do Integration Service
-    token = get_access_token()
-    if not token:
-        logging.error("Zatrzymanie wysyłki pliku z powodu braku autoryzacji z Keycloak.")
-        return
+    batch_url = f"{args.url}/batch"
 
-    # Zakładamy, że endpoint do paczek to adres API + "/bulk"
-    bulk_url = f"{args.url}/bulk"
-    api_headers = {
-        "Authorization": f"Bearer {token}"
-        # UWAGA: Przy wgrywaniu pliku (files=) biblioteka requests sama dodaje Content-Type: multipart/form-data
-    }
+    # Pobranie rozmiaru pliku w bajtach
+    file_size_bytes = os.path.getsize(filename)
+    file_size_mb = file_size_bytes / (1024 * 1024)
 
-    logging.info(f"Wysyłam plik wsadowy ({filename}) do serwera: {bulk_url}")
-
+    logging.info(f"Wysyłam plik wsadowy ({filename}, rozmiar: {file_size_mb:.2f} MB) do serwera: {batch_url}")
     try:
         with open(filename, 'rb') as f:
-            # Struktura: (nazwa_pliku, dane, typ_MIME)
             files = {'file': (filename, f, 'application/x-ndjson')}
-            response = requests.post(bulk_url, headers=api_headers, files=files)
+            response = requests.post(batch_url, files=files)
 
-        if response.status_code in [200, 201, 202]:
+        if response.status_code in [200, 201, 202, 203, 204]:
             logging.info(f"Plik pomyślnie przyjęty przez serwer. Status: {response.status_code}")
         else:
             logging.error(f"Błąd wysyłania. Serwer zwrócił: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
-        logging.error(f"Nie można połączyć z {bulk_url}. Błąd: {e}")
+        logging.error(f"Nie można połączyć z {batch_url}. Błąd: {e}")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Symulator IoT dla parametrów życiowych")
     parser.add_argument('--mode', choices=['realtime', 'batch'], default='realtime',
-                        help="Tryb działania: 'realtime' (HTTP) lub 'batch' (zapis do pliku i wysyłka bulk)")
+                        help="Tryb działania: 'realtime' (HTTP) lub 'batch' (zapis do pliku i wysyłka batch)")
     parser.add_argument('--patient-id', type=str, default='patient_1234',
                         help="ID pacjenta")
 
-    # Automatyczne pobranie API_URL z env, jeśli istnieje
     default_api_url = os.getenv("API_URL", "http://localhost:8083/api/v1/integration")
 
     parser.add_argument('--url', type=str, default=default_api_url,
-                        help="Adres URL dla trybu realtime. W trybie batch skrypt uderzy pod adres [URL]/bulk")
+                        help="Adres URL")
     parser.add_argument('--interval', type=int, default=2,
                         help="Interwał w sekundach między pomiarami")
     parser.add_argument('--days', type=int, default=1,
                         help="Ile dni wstecz wygenerować w trybie batch")
     parser.add_argument('--file', type=str, default=None,
-                        help="Opcjonalna nazwa pliku (domyślnie: [patient-id].jsonl)")
+                        help="Opcjonalna nazwa pliku")
 
     args = parser.parse_args()
 
