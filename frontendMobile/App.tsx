@@ -1,20 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { jwtDecode } from "jwt-decode";
 import { StatusBar, StyleSheet, useColorScheme, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // <-- IMPORT
+
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { LoginScreen } from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ProfileSetupScreen } from './src/screens/ProfileSetupScreen';
 import { DashboardScreen } from "./src/screens/DashboardScreen";
+import { VitalsHistoryScreen } from './src/screens/VitalsHistoryScreen';
 import { authService } from './src/api/authClient.ts';
+
+const Stack = createNativeStackNavigator();
 
 function App() {
     const isDarkMode = useColorScheme() === 'dark';
     return (
         <SafeAreaProvider>
-            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="#FFFFFF" />
-            <AppContent />
+            <NavigationContainer>
+                <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor="#FFFFFF" />
+                <AppContent />
+            </NavigationContainer>
         </SafeAreaProvider>
     );
 }
@@ -22,19 +31,47 @@ function App() {
 function AppContent() {
     const safeAreaInsets = useSafeAreaInsets();
     const [currentScreen, setCurrentScreen] = useState<'login' | 'register'>('login');
+
     const [userToken, setUserToken] = useState<string | null>(null);
     const [refreshToken, setRefreshToken] = useState<string | null>(null);
+
     const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
     const [patientData, setPatientData] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(false);
 
-    // --- FUNKCJA WYLOGOWANIA ---
-    const handleLogout = () => {
+    const [isLoading, setIsLoading] = useState(true); // Zaczynamy od true, bo sprawdzamy pamięć telefonu
+
+    // 1. ŁADOWANIE TOKENU PRZY STARCIE APLIKACJI
+    useEffect(() => {
+        const loadStoredToken = async () => {
+            try {
+                const storedToken = await AsyncStorage.getItem('access_token');
+                const storedRefresh = await AsyncStorage.getItem('refresh_token');
+                if (storedToken) {
+                    setUserToken(storedToken);
+                    setRefreshToken(storedRefresh);
+                    await checkProfile(storedToken);
+                } else {
+                    setIsLoading(false);
+                }
+            } catch (e) {
+                console.error("Błąd odczytu tokenu z AsyncStorage", e);
+                setIsLoading(false);
+            }
+        };
+        loadStoredToken();
+    }, []);
+
+    const handleLogout = async () => {
         authService.logout(refreshToken);
+        // Czyszczenie pamięci
+        await AsyncStorage.removeItem('access_token');
+        await AsyncStorage.removeItem('refresh_token');
+
         setUserToken(null);
         setRefreshToken(null);
         setIsProfileComplete(null);
-        setPatientData(null); // Czyścimy dane pacjenta przy wylogowaniu
+        setPatientData(null);
+        setCurrentScreen('login');
     };
 
     const checkProfile = async (token: string) => {
@@ -42,8 +79,6 @@ function AppContent() {
         try {
             const decoded: any = jwtDecode(token);
             const userId = decoded.sub;
-
-            console.log("Zdekodowane ID użytkownika:", userId);
 
             const response = await fetch(`http://10.0.2.2:8080/api/v1/patients/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -54,28 +89,17 @@ function AppContent() {
             const data = await response.json();
             setPatientData(data);
 
-            const isComplete = Boolean(
-                data &&
-                data.dateOfBirth &&
-                data.pesel &&
-                data.phoneNumber &&
-                data.address
-            );
-
-            console.log("Czy profil jest kompletny?:", isComplete);
-
+            const isComplete = Boolean(data && data.dateOfBirth && data.pesel && data.phoneNumber && data.address);
             setIsProfileComplete(isComplete);
 
         } catch (error) {
             console.error("Błąd podczas dekodowania tokena lub pobierania profilu:", error);
-            // W razie błędu pobierania (np. token wygasł), bezpiecznie wylogowujemy
-            handleLogout();
+            await handleLogout();
         } finally {
             setIsLoading(false);
         }
     };
 
-    // EKRAN ŁADOWANIA
     if (isLoading) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -84,44 +108,58 @@ function AppContent() {
         );
     }
 
-    // Jeśli token jest, ale profil wciąż sprawdzany
     if (userToken && isProfileComplete === null) {
         return <View style={styles.container} />;
     }
 
-    // 1. Jeśli token jest obecny i profil NIEPEŁNY
     if (userToken && isProfileComplete === false) {
         return (
             <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
                 <ProfileSetupScreen
                     patientData={patientData}
+                    token={userToken} // <-- Przekazujemy token
                     onProfileUpdated={() => setIsProfileComplete(true)}
-                    onLogout={handleLogout} // <--- DODANO BRAKUJĄCY PROP
+                    onLogout={handleLogout}
                 />
             </View>
         );
     }
 
-    // 2. Jeśli token jest obecny i profil JEST PEŁNY
     if (userToken && isProfileComplete === true) {
         return (
-            <DashboardScreen
-                patientData={patientData}
-                onLogout={handleLogout} // <--- Używamy wspólnej funkcji
-            />
+            <Stack.Navigator initialRouteName="Dashboard" screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Dashboard">
+                    {(props) => (
+                        <DashboardScreen
+                            {...props}
+                            patientData={patientData}
+                            token={userToken} // <-- Przekazujemy token do Dashboardu
+                            onLogout={handleLogout}
+                            onNavigateToHistory={(data) =>
+                                // Przekazujemy token również jako parametr trasy do Historii
+                                props.navigation.navigate('VitalsHistory', { patientData: data, token: userToken })
+                            }
+                        />
+                    )}
+                </Stack.Screen>
+                <Stack.Screen name="VitalsHistory" component={VitalsHistoryScreen} />
+            </Stack.Navigator>
         );
     }
 
-    // 3. Logowanie i Rejestracja (Brak tokena)
     return (
         <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
             {currentScreen === 'login' ? (
                 <LoginScreen
                     onNavigateToRegister={() => setCurrentScreen('register')}
-                    onLoginSuccess={(token) => {
-                        setUserToken(token.accessToken);
-                        checkProfile(token.accessToken);
-                        setRefreshToken(token.refreshToken);
+                    onLoginSuccess={async (tokens) => {
+                        // ZAPIS TOKENU DO PAMIĘCI TELEFONU PO ZALOGOWANIU
+                        await AsyncStorage.setItem('access_token', tokens.accessToken);
+                        await AsyncStorage.setItem('refresh_token', tokens.refreshToken);
+
+                        setUserToken(tokens.accessToken);
+                        setRefreshToken(tokens.refreshToken);
+                        checkProfile(tokens.accessToken);
                     }}
                 />
             ) : (
@@ -131,11 +169,5 @@ function AppContent() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-});
-
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#FFFFFF' } });
 export default App;
