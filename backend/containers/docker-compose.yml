@@ -311,6 +311,12 @@ services:
     volumes:
       - ../machine-learing/models:/app/models
 
+  simulator:
+    image: iot-simulator:latest
+    profiles: ["simulation"]
+    environment:
+      - API_URL=http://integration:8083/api/v1/integration
+
 volumes:
   postgres:
   pgadmin:
