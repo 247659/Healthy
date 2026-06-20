@@ -40,3 +40,36 @@ To pass through the API Gateway, you need to configure Postman to automatically 
 5. Click the orange **Get New Access Token** button at the bottom.
 6. A success window will pop up displaying your generated JWT token. Click the **Use Token** button.
 7. Click **Send** to execute your API request. The Gateway will now authenticate your token and grant you access to the microservices!
+
+
+
+
+### How to Simulate iot measurement
+To simulate iot measuremnt flow, create containers by Docker Compose:
+```
+docker-compose up --d
+```
+
+To get realtime measurement simulation in case testing ML working use command with custom params:
+```
+docker-compose --profile simulation run --rm simulator --mode batch --patient-id "patient_123" --days 2 
+```
+
+To get batch measurement simulation in case trainning LSTM model use command with custom params:
+```
+docker-compose --profile simulation run --rm simulator --mode realtime --patient-id "patient_12345" --interval 2
+```
+
+When you generated batch data or waited in real time mode as long as you get over 1000 records in db (not recommended), use this command if you want to train LSTM model:
+```
+docker-compose up -d ai-trainer 
+```
+
+If you recently trained new LSTM model, you have to restart ai-worker container by following command:
+```
+docker-compose up -d ai-worker 
+```
+
+Enjoy
+
+
