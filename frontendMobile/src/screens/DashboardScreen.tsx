@@ -44,7 +44,7 @@ interface DashboardScreenProps {
     token: string | null;
     onLogout: () => void;
     onNavigateToHistory: (patientData: any) => void;
-    onNavigateToProfileEdit: (patientData: any) => void; // <-- NOWY PROP
+    onNavigateToProfileEdit: (patientData: any) => void;
 }
 
 export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHistory, onNavigateToProfileEdit }: DashboardScreenProps) => {
@@ -89,38 +89,26 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         }
     };
 
+    // --- ZAKTUALIZOWANE POBIERANIE LEKARZY Z JEDNEGO ENDPOINTU ---
     const fetchDoctors = async () => {
         if (!patientData?.id || !token) return;
         setIsLoadingDoctors(true);
 
         try {
-            const idsResponse = await fetch(`http://10.0.2.2:8080/api/v1/staff/patients/${patientData.id}/doctors-list`, {
+            // Uderzamy do nowego endpointu, który od razu zwraca listę obiektów MedicalStaffEssentialResponse
+            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/patients/${patientData.id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (!idsResponse.ok) throw new Error("Błąd podczas pobierania ID lekarzy");
-            const doctorIds: string[] = await idsResponse.json();
+            if (!response.ok) throw new Error("Błąd podczas pobierania lekarzy przypisanych do pacjenta");
 
-            if (Array.isArray(doctorIds) && doctorIds.length > 0) {
-                const doctorsPromises = doctorIds.map(async (docId) => {
-                    const docResponse = await fetch(`http://10.0.2.2:8080/api/v1/staff/${docId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
+            const doctorsData = await response.json();
 
-                    if (docResponse.ok) {
-                        return await docResponse.json();
-                    }
-                    return null;
-                });
-
-                const doctorsData = await Promise.all(doctorsPromises);
-                setDoctors(doctorsData.filter(doc => doc !== null));
+            if (Array.isArray(doctorsData)) {
+                setDoctors(doctorsData);
             } else {
                 setDoctors([]);
             }
@@ -236,8 +224,8 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                         <ActivityIndicator size="large" color="#8B5CF6" style={{ marginVertical: 20 }} />
                     ) : doctors.length > 0 ? (
                         doctors.map((doctor, index) => {
-                            const specName = doctor.specializations && doctor.specializations.length > 0
-                                ? (doctor.specializations[0].name || doctor.specializations[0])
+                            const specName = doctor.specializationNames && doctor.specializationNames.length > 0
+                                ? (doctor.specializationNames[0].name || doctor.specializationNames[0])
                                 : 'Lekarz specjalista';
 
                             const iconColor = index % 2 === 0 ? "#8B5CF6" : "#3B82F6";
