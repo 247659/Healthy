@@ -71,4 +71,9 @@ public class MedicalStaffController {
     public ResponseEntity<MedicalStaffEssentialResponse> getDoctorEssentialDataById(@PathVariable String id) {
         return ResponseEntity.ok(medicalStaffService.getDoctorEssentialDataById(id));
     }
+
+    @GetMapping("/patients/{patientId}")
+    public ResponseEntity<List<MedicalStaffEssentialResponse>> getDoctorsAssignedToPatient(@PathVariable String patientId) {
+        return ResponseEntity.ok(medicalStaffService.getDoctorsAssignedToPatient(patientId));
+    }
 }

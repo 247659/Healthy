@@ -24,4 +24,6 @@ public interface MedicalStaffRepository extends JpaRepository<MedicalStaff, Stri
 
     @Query("SELECT m.id FROM MedicalStaff m JOIN m.patientAssignments pa WHERE pa.patientId = :patientId")
     List<String> findIdsByPatientId(@Param("patientId") String patientId);
+
+    List<MedicalStaff> findByPatientAssignments_PatientId(String patientId);
 }

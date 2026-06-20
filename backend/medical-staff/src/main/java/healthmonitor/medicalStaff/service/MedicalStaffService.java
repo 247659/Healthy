@@ -27,4 +27,6 @@ public interface MedicalStaffService {
     List<MedicalStaffEssentialResponse> getAllDoctorsEssentialData();
 
     MedicalStaffEssentialResponse getDoctorEssentialDataById(String id);
+
+    List<MedicalStaffEssentialResponse> getDoctorsAssignedToPatient(String patientId);
 }

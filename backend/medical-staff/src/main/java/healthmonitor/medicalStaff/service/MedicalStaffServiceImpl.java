@@ -110,6 +110,13 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
         return medicalStaffMapper.toEssentialResponse(medicalStaff);
     }
 
+    @Override
+    public List<MedicalStaffEssentialResponse> getDoctorsAssignedToPatient(String patientId) {
+        return medicalStaffRepository.findByPatientAssignments_PatientId(patientId).stream()
+                .map(medicalStaffMapper::toEssentialResponse)
+                .toList();
+    }
+
     private MedicalStaff getEntity(String id) {
         return medicalStaffRepository.findWithSpecializationById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));
