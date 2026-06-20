@@ -76,4 +76,9 @@ public class MedicalStaffController {
     public ResponseEntity<List<MedicalStaffEssentialResponse>> getDoctorsAssignedToPatient(@PathVariable String patientId) {
         return ResponseEntity.ok(medicalStaffService.getDoctorsAssignedToPatient(patientId));
     }
+    @DeleteMapping("/{id}/unassign/{patientId}")
+    public ResponseEntity<Void> unassignPatient(@PathVariable String id, @PathVariable String patientId) {
+        medicalStaffService.unassignPatient(id, patientId);
+        return ResponseEntity.noContent().build();
+    }
 }

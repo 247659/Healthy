@@ -111,6 +111,16 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     }
 
     @Override
+    @Transactional
+    public void unassignPatient(String id, String patientId) {
+        MedicalStaff medicalStaff = getEntity(id);
+        medicalStaff.getPatientAssignments().stream()
+                .filter(pa -> pa.getPatientId().equals(patientId))
+                .findFirst()
+                .ifPresent(medicalStaff::removePatientAssignment);
+    }
+
+    @Override
     public List<MedicalStaffEssentialResponse> getDoctorsAssignedToPatient(String patientId) {
         return medicalStaffRepository.findByPatientAssignments_PatientId(patientId).stream()
                 .map(medicalStaffMapper::toEssentialResponse)
