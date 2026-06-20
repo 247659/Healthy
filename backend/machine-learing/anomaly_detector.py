@@ -26,7 +26,7 @@ class VitalsAnomalyDetector:
             os.path.join(models_dir, "global_isolation_forest.pkl")
         )
         self.use_lstm       = False
-        self.TIME_STEPS     = 10
+        self.TIME_STEPS     = 30
         self.patient_buffers: dict[str, list] = {}
         self.normalizer     = get_normalizer()
 
