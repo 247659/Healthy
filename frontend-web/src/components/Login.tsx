@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import { authService } from "../api/authClient.ts";
+import {medicalStaffService} from "../api/staffClient.ts";
 
 // Funkcja pomocnicza do dekodowania tokenu JWT (nie wymaga instalacji zewnętrznych bibliotek)
 const getUserIdFromToken = (token: string) => {
@@ -55,9 +56,7 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
             // 3. Sprawdzamy, czy profil lekarza istnieje, używając jego ID
             try {
                 // Pobieramy dane z MedicalStaffController -> @GetMapping("/{id}")
-                await axios.get(`http://localhost:8082/api/v1/staff/${userId}`, {
-                    headers: { Authorization: `Bearer ${accessToken}` }
-                });
+                await medicalStaffService.getMedicalStaffInformationById(userId)
 
                 // Jeśli profil istnieje (status 200 OK), idziemy do listy pacjentów
                 navigate('/patients');
