@@ -7,7 +7,7 @@ joblib~=1.5.3
 scikit-learn~=1.9.0
 numpy~=2.4.6
 aio-pika~=9.6.2
-keras~=3.3.3
-tensorflow~=2.16.1
+keras~=3.14.1
+tensorflow~=2.21.0
 aiohttp
 aiocsv==1.4.1

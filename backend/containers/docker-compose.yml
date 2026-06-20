@@ -282,6 +282,7 @@ services:
 
   ai-worker:
     build: ../machine-learing
+    image: healthy-ml-env:latest
     container_name: ml_worker
     restart: always
     networks:
@@ -296,7 +297,7 @@ services:
       - ../machine-learing/models:/app/models
 
   ai_trainer:
-    build: ../machine-learing
+    image: healthy-ml-env:latest
     container_name: ml_trainer
     command: ["python", "train_lstm_job.py"]
     profiles: ["tools"]
