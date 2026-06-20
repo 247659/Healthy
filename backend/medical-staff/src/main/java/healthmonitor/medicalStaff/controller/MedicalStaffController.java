@@ -55,4 +55,9 @@ public class MedicalStaffController {
     public ResponseEntity<List<String>> getAllPatientIds(@PathVariable String id) {
         return ResponseEntity.ok(medicalStaffService.getPatientsIds(id));
     }
+
+    @GetMapping("/patients/{patientId}/doctors-list")
+    public ResponseEntity<List<String>> getDoctorsForPatient(@PathVariable String patientId) {
+        return ResponseEntity.ok(medicalStaffService.getDoctorsIdsByPatientId(patientId));
+    }
 }

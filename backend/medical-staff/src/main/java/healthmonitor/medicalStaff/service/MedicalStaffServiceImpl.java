@@ -91,6 +91,11 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
                 .toList();
     }
 
+    @Override
+    public List<String> getDoctorsIdsByPatientId(String patientId) {
+        return medicalStaffRepository.findIdsByPatientId(patientId);
+    }
+
     private MedicalStaff getEntity(String id) {
         return medicalStaffRepository.findWithSpecializationById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"));

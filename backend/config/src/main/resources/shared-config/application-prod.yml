@@ -13,6 +13,14 @@ management:
     sampling:
       probability: 1.0
 
+  otlp:
+    metrics:
+      export:
+        enabled: false
+    tracing:
+      export:
+        enabled: false
+
 spring:
   rabbitmq:
     template:

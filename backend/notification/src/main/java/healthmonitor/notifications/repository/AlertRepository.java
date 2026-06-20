@@ -10,4 +10,5 @@ import java.util.List;
 public interface AlertRepository extends JpaRepository<Alert, String> {
 
     List<Alert> findByPatientIdAndIsReadFalseOrderByTimestampDesc(String patientId);
+    List<Alert> findByPatientId(String patientId);
 }
