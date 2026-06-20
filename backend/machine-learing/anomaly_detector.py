@@ -5,7 +5,7 @@ import logging
 import os
 
 try:
-    from tensorflow.keras.models import load_model
+    import tensorflow.keras.models
 
     TENSORFLOW_AVAILABLE = True
 except ImportError:

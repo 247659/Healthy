@@ -128,7 +128,8 @@ async def main():
     detector = VitalsAnomalyDetector()
     trainer = AITrainer(repository)
 
-    connection = await aio_pika.connect_robust("amqp://admin:adminpassword@localhost/")
+    rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://admin:adminpassword@localhost/")
+    connection = await aio_pika.connect_robust(rabbitmq_url)
 
     async with connection:
         channel = await connection.channel()
