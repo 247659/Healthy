@@ -282,6 +282,7 @@ services:
 
   ai-worker:
     build: ../machine-learing
+    image: healthy-ml-env:latest
     container_name: ml_worker
     restart: always
     networks:
@@ -291,11 +292,12 @@ services:
     - INFLUX_TOKEN=super-secret-auth-token-123
     - INFLUX_ORG=health_monitoring
     - RABBITMQ_URL=amqp://admin:adminpassword@message_broker/
+    - MODELS_DIR=/app/models/
     volumes:
-      - ml_models_data:/app/models
+      - ../machine-learing/models:/app/models
 
   ai_trainer:
-    build: ../machine-learing
+    image: healthy-ml-env:latest
     container_name: ml_trainer
     command: ["python", "train_lstm_job.py"]
     profiles: ["tools"]
@@ -307,11 +309,10 @@ services:
       - INFLUX_ORG=health_monitoring
       - RABBITMQ_URL=amqp://admin:adminpassword@message_broker/
     volumes:
-      - ml_models_data:/app/models
+      - ../machine-learing/models:/app/models
 
 volumes:
   postgres:
   pgadmin:
   vital_signs_data:
-  ml_models_data:
 
