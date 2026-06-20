@@ -296,7 +296,7 @@ services:
     volumes:
       - ../machine-learing/models:/app/models
 
-  ai_trainer:
+  ai-trainer:
     image: healthy-ml-env:latest
     container_name: ml_trainer
     command: ["python", "train_lstm_job.py"]
