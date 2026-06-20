@@ -6,6 +6,7 @@ import healthmonitor.medicalStaff.model.MedicalStaff;
 import healthmonitor.medicalStaff.model.PatientAssignment;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffCreateRequest;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
+import healthmonitor.medicalStaff.payload.response.MedicalStaffEssentialResponse;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.repository.MedicalStaffRepository;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +95,26 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     @Override
     public List<String> getDoctorsIdsByPatientId(String patientId) {
         return medicalStaffRepository.findIdsByPatientId(patientId);
+    }
+
+    @Override
+    public List<MedicalStaffEssentialResponse> getAllDoctorsEssentialData() {
+        return medicalStaffRepository.findAll().stream()
+                .map(medicalStaffMapper::toEssentialResponse)
+                .toList();
+    }
+
+    @Override
+    public MedicalStaffEssentialResponse getDoctorEssentialDataById(String id) {
+        MedicalStaff medicalStaff = getEntity(id);
+        return medicalStaffMapper.toEssentialResponse(medicalStaff);
+    }
+
+    @Override
+    public List<MedicalStaffEssentialResponse> getDoctorsAssignedToPatient(String patientId) {
+        return medicalStaffRepository.findByPatientAssignments_PatientId(patientId).stream()
+                .map(medicalStaffMapper::toEssentialResponse)
+                .toList();
     }
 
     private MedicalStaff getEntity(String id) {
