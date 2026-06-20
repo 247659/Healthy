@@ -1,5 +1,6 @@
 package healthmonitor.notifications.sevice;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import healthmonitor.notifications.communication.MedicalStaffClient;
 import healthmonitor.notifications.config.RabbitMQConfig;
 import healthmonitor.notifications.model.Alert;
@@ -25,18 +26,22 @@ public class AlertServiceImpl implements AlertService {
     private final AlertRepository alertRepository;
     private final MedicalStaffClient medicalStaffClient;
     private final SimpMessagingTemplate messagingTemplate;
-
     @Override
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     @Transactional
-    public void processAlert(AlertEventMessage alertDto) {
+    public void processAlert(AlertEventMessage alertDto) throws JsonProcessingException {
         log.info("Receiver alert for user with ID: {}", alertDto.getPatientId());
 
         try {
             Alert alert = Alert.builder()
                     .patientId(alertDto.getPatientId())
                     .riskScore(alertDto.getRiskScore())
+                    .severity(alertDto.getSeverity())
                     .message(alertDto.getMessage())
+                    .details(alertDto.getDetails())
+                    .recommendation(alertDto.getRecommendation())
+                    .forecastNote(alertDto.getForecastNote())
+                    .method(alertDto.getMethod())
                     .timestamp(alertDto.getTimestamp())
                     .build();
 
@@ -96,7 +101,9 @@ public class AlertServiceImpl implements AlertService {
                 .alertId(alert.getAlertId())
                 .patientId(alert.getPatientId())
                 .riskScore(alert.getRiskScore())
+                .severity(alert.getSeverity())
                 .message(alert.getMessage())
+                .details(alert.getDetails())
                 .timestamp(alert.getTimestamp())
                 .isRead(alert.isRead())
                 .build();

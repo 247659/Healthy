@@ -33,7 +33,7 @@ class PatientNormalizer:
                 param: deque(maxlen=self.max_window) for param in PARAM_ORDER
             }
         for param in PARAM_ORDER:
-            if param in features:
+            if param in features and features[param] is not None:
                 self._buffers[patient_id][param].append(features[param])
 
 
@@ -74,7 +74,9 @@ class PatientNormalizer:
         stats  = self.get_stats(patient_id)
         result = np.zeros(len(PARAM_ORDER), dtype=np.float32)
         for i, param in enumerate(PARAM_ORDER):
-            raw  = features.get(param, stats[param]["mean"])
+            raw_val = features.get(param)
+            raw = raw_val if raw_val is not None else stats[param]["mean"]
+
             mu   = stats[param]["mean"]
             sigma = stats[param]["std"]
             result[i] = (raw - mu) / sigma
@@ -89,7 +91,9 @@ class PatientNormalizer:
         result = np.zeros((len(sequence), len(PARAM_ORDER)), dtype=np.float32)
         for t, reading in enumerate(sequence):
             for i, param in enumerate(PARAM_ORDER):
-                raw   = reading.get(param, stats[param]["mean"])
+                raw_val = reading.get(param)
+
+                raw   = raw_val if raw_val is not None else stats[param]["mean"]
                 mu    = stats[param]["mean"]
                 sigma = stats[param]["std"]
                 result[t, i] = (raw - mu) / sigma

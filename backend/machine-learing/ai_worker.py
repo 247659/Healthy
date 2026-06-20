@@ -102,7 +102,7 @@ async def on_message(
                     "forecastNote":   xai.get("forecast_note"),
                     "method":         method,
                     "timestamp":      datetime.now().isoformat(),
-                    "rawValues":      analysis.get("xai", {}).get("raw_values", {}),
+                    # "rawValues":      analysis.get("xai", {}).get("raw_values", {}),
                 }
                 notif_exchange = await channel.get_exchange("notifications.exchange")
                 await notif_exchange.publish(

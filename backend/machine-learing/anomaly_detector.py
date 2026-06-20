@@ -77,6 +77,8 @@ class VitalsAnomalyDetector:
             "spO2":        payload.spO2,
         }
 
+        raw_features = {k: v for k, v in raw_features.items() if v is not None}
+
         self.normalizer.update(patient_id, raw_features)
 
         norm_vector, patient_stats = self.normalizer.normalize(patient_id, raw_features)

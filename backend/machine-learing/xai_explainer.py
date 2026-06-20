@@ -62,7 +62,7 @@ def _describe_deviations(snapshot: VitalsSnapshot, patient_stats: Optional[dict]
                     direction = "powyzej" if z > 0 else "ponizej"
                     obs.append(
                         f"{label}: {value:.1f} {unit} "
-                        f"({abs(z):.1f}sigma {direction} indywidualnej normy, "
+                        f"({direction} indywidualnej normy, "
                         f"oczekiwano ~{mu:.1f} {unit})"
                     )
             continue
