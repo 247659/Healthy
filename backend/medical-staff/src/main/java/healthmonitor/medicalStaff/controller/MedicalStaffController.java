@@ -46,7 +46,7 @@ public class MedicalStaffController {
         return ResponseEntity.ok(medicalStaffService.update(id, request));
     }
 
-    @PutMapping("/{id}/assign/{patientId}")
+    @PostMapping("/{id}/assign/{patientId}")
     public ResponseEntity<Void> assignPatient(@PathVariable String id, @PathVariable String patientId) {
         medicalStaffService.assignPatient(id, patientId);
         return ResponseEntity.noContent().build();
@@ -76,7 +76,7 @@ public class MedicalStaffController {
     public ResponseEntity<List<MedicalStaffEssentialResponse>> getDoctorsAssignedToPatient(@PathVariable String patientId) {
         return ResponseEntity.ok(medicalStaffService.getDoctorsAssignedToPatient(patientId));
     }
-    @PutMapping("/{id}/unassign/{patientId}")
+    @DeleteMapping("/{id}/unassign/{patientId}")
     public ResponseEntity<Void> unassignPatient(@PathVariable String id, @PathVariable String patientId) {
         medicalStaffService.unassignPatient(id, patientId);
         return ResponseEntity.noContent().build();

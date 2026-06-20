@@ -111,6 +111,7 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     }
 
     @Override
+    @Transactional
     public void unassignPatient(String id, String patientId) {
         MedicalStaff medicalStaff = getEntity(id);
         medicalStaff.getPatientAssignments().stream()
