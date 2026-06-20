@@ -19,14 +19,14 @@ logger = logging.getLogger("anomaly_detector")
 
 class VitalsAnomalyDetector:
 
-    def __init__(self, models_dir: str = "/models/"):
+    def __init__(self, models_dir: str = os.getenv("MODELS_DIR", "./models/")):
         self.models_dir     = models_dir
         self.loaded_models  = {}
         self.global_model   = self._load_model(
             os.path.join(models_dir, "global_isolation_forest.pkl")
         )
         self.use_lstm       = False
-        self.TIME_STEPS     = 30
+        self.TIME_STEPS     = 10
         self.patient_buffers: dict[str, list] = {}
         self.normalizer     = get_normalizer()
 
@@ -112,7 +112,7 @@ class VitalsAnomalyDetector:
                 lstm_input   = np.expand_dims(window, axis=0)
                 recon        = self.lstm_model.predict(lstm_input, verbose=0)
                 mse          = float(np.mean(np.power(lstm_input - recon, 2)))
-                lstm_risk    = float(np.clip(mse * 10, 0.0, 1.0))
+                lstm_risk    = float(np.clip(mse * 2, 0.0, 1.0))
                 lstm_anomaly = lstm_risk > 0.7
 
                 final_risk = max(if_risk, lstm_risk)

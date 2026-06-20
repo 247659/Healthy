@@ -296,7 +296,7 @@ services:
     volumes:
       - ../machine-learing/models:/app/models
 
-  ai_trainer:
+  ai-trainer:
     image: healthy-ml-env:latest
     container_name: ml_trainer
     command: ["python", "train_lstm_job.py"]
@@ -310,6 +310,15 @@ services:
       - RABBITMQ_URL=amqp://admin:adminpassword@message_broker/
     volumes:
       - ../machine-learing/models:/app/models
+
+  simulator:
+    build: ../simulator
+    image: iot-simulator:latest
+    profiles: ["simulation"]
+    networks:
+      - backend
+    environment:
+      - API_URL=http://integration:8083/api/v1/integration
 
 volumes:
   postgres:

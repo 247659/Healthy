@@ -13,7 +13,8 @@ async def main():
     influx_client = InfluxDBClientAsync(
         url=os.getenv("INFLUX_URL", "http://localhost:8086"),
         token=os.getenv("INFLUX_TOKEN", "super-secret-auth-token-123"),
-        org=os.getenv("INFLUX_ORG", "health_monitoring")
+        org=os.getenv("INFLUX_ORG", "health_monitoring"),
+        timeout=6000
     )
 
     repository = VitalsRepository(influx_client)
