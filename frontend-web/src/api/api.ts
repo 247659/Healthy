@@ -49,12 +49,9 @@ api.interceptors.response.use(
         return response;
     },
     async (error) => {
-        console.log("DUPA1")
         const originalRequest = error.config;
-        console.log(originalRequest);
         // Jeśli błąd to 401 i jeszcze nie ponawialiśmy tego żądania (_retry to nasza własna flaga)
         if (error.response?.status === 401 && !originalRequest._retry) {
-            console.log("PIOBIERANIE REFRESH");
             // Jeśli aktualnie trwa odświeżanie tokena z innego żądania,
             // dodajemy to żądanie do kolejki oczekujących
             if (isRefreshing) {
