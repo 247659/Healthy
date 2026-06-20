@@ -2,6 +2,7 @@ package healthmonitor.medicalStaff.service;
 
 import healthmonitor.medicalStaff.payload.request.MedicalStaffCreateRequest;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
+import healthmonitor.medicalStaff.payload.response.MedicalStaffEssentialResponse;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 
 import java.util.List;
@@ -22,4 +23,8 @@ public interface MedicalStaffService {
     List<String> getPatientsIds(String id);
 
     List<String> getDoctorsIdsByPatientId(String patientId);
+
+    List<MedicalStaffEssentialResponse> getAllDoctorsEssentialData();
+
+    MedicalStaffEssentialResponse getDoctorEssentialDataById(String id);
 }

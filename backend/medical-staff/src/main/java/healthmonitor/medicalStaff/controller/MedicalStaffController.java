@@ -2,6 +2,7 @@ package healthmonitor.medicalStaff.controller;
 
 import healthmonitor.medicalStaff.payload.request.MedicalStaffCreateRequest;
 import healthmonitor.medicalStaff.payload.request.MedicalStaffRequest;
+import healthmonitor.medicalStaff.payload.response.MedicalStaffEssentialResponse;
 import healthmonitor.medicalStaff.payload.response.MedicalStaffResponse;
 import healthmonitor.medicalStaff.service.MedicalStaffService;
 import jakarta.validation.Valid;
@@ -59,5 +60,15 @@ public class MedicalStaffController {
     @GetMapping("/patients/{patientId}/doctors-list")
     public ResponseEntity<List<String>> getDoctorsForPatient(@PathVariable String patientId) {
         return ResponseEntity.ok(medicalStaffService.getDoctorsIdsByPatientId(patientId));
+    }
+
+    @GetMapping("/essential")
+    public ResponseEntity<List<MedicalStaffEssentialResponse>> getAllDoctorsEssentialData() {
+        return ResponseEntity.ok(medicalStaffService.getAllDoctorsEssentialData());
+    }
+
+    @GetMapping("/{id}/essential")
+    public ResponseEntity<MedicalStaffEssentialResponse> getDoctorEssentialDataById(@PathVariable String id) {
+        return ResponseEntity.ok(medicalStaffService.getDoctorEssentialDataById(id));
     }
 }

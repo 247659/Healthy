@@ -280,8 +280,38 @@ services:
     networks:
       - backend
 
+  ai-worker:
+    build: ../machine-learing
+    container_name: ml_worker
+    restart: always
+    networks:
+      - backend
+    environment:
+    - INFLUX_URL=http://vital_signs_db:8086
+    - INFLUX_TOKEN=super-secret-auth-token-123
+    - INFLUX_ORG=health_monitoring
+    - RABBITMQ_URL=amqp://admin:adminpassword@message_broker/
+    volumes:
+      - ml_models_data:/app/models
+
+  ai_trainer:
+    build: ../machine-learing
+    container_name: ml_trainer
+    command: ["python", "train_lstm_job.py"]
+    profiles: ["tools"]
+    networks:
+      - backend
+    environment:
+      - INFLUX_URL=http://vital_signs_db:8086
+      - INFLUX_TOKEN=super-secret-auth-token-123
+      - INFLUX_ORG=health_monitoring
+      - RABBITMQ_URL=amqp://admin:adminpassword@message_broker/
+    volumes:
+      - ml_models_data:/app/models
+
 volumes:
   postgres:
   pgadmin:
   vital_signs_data:
+  ml_models_data:
 
