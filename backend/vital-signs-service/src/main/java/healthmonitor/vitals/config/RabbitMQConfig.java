@@ -12,6 +12,8 @@ public class RabbitMQConfig {
     public static final String QUEUE_NAME = "vitals.queue";
     public static final String EXCHANGE_NAME = "iot.vitals.exchange";
     public static final String ROUTING_KEY = "vitals.incoming";
+    public static final String BATCH_QUEUE_NAME = "vitals.batch";
+    public static final String BATCH_ROUTING_KEY = "vitals.batch.incoming";
     public static final String THRESHOLD_QUEUE = "threshold.queue";
     public static final String ROUTING_KEY_THRESHOLD = "vitals.threshold.created";
 
@@ -38,6 +40,16 @@ public class RabbitMQConfig {
     @Bean
     public Binding thresholdBinding(Queue thresholdQueue, TopicExchange vitalsExchange) {
         return BindingBuilder.bind(thresholdQueue).to(vitalsExchange).with(ROUTING_KEY_THRESHOLD);
+    }
+
+    @Bean
+    public Queue batchQueue() {
+        return new Queue(BATCH_QUEUE_NAME, true);
+    }
+
+    @Bean
+    public Binding batchBinding(Queue batchQueue, TopicExchange vitalsExchange) {
+        return BindingBuilder.bind(batchQueue).to(vitalsExchange).with(BATCH_ROUTING_KEY);
     }
 
     @Bean
