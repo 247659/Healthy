@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { jwtDecode } from "jwt-decode";
 import { StatusBar, StyleSheet, useColorScheme, View, ActivityIndicator } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // <-- IMPORT
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -12,6 +12,9 @@ import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ProfileSetupScreen } from './src/screens/ProfileSetupScreen';
 import { DashboardScreen } from "./src/screens/DashboardScreen";
 import { VitalsHistoryScreen } from './src/screens/VitalsHistoryScreen';
+// --- DODANY IMPORT NOWEGO EKRANU ---
+import { ProfileEditScreen } from './src/screens/ProfileEditScreen';
+
 import { authService } from './src/api/authClient.ts';
 
 const Stack = createNativeStackNavigator();
@@ -38,9 +41,8 @@ function AppContent() {
     const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
     const [patientData, setPatientData] = useState<any>(null);
 
-    const [isLoading, setIsLoading] = useState(true); // Zaczynamy od true, bo sprawdzamy pamięć telefonu
+    const [isLoading, setIsLoading] = useState(true);
 
-    // 1. ŁADOWANIE TOKENU PRZY STARCIE APLIKACJI
     useEffect(() => {
         const loadStoredToken = async () => {
             try {
@@ -63,7 +65,6 @@ function AppContent() {
 
     const handleLogout = async () => {
         authService.logout(refreshToken);
-        // Czyszczenie pamięci
         await AsyncStorage.removeItem('access_token');
         await AsyncStorage.removeItem('refresh_token');
 
@@ -117,7 +118,7 @@ function AppContent() {
             <View style={[styles.container, { paddingTop: safeAreaInsets.top }]}>
                 <ProfileSetupScreen
                     patientData={patientData}
-                    token={userToken} // <-- Przekazujemy token
+                    token={userToken}
                     onProfileUpdated={() => setIsProfileComplete(true)}
                     onLogout={handleLogout}
                 />
@@ -125,6 +126,7 @@ function AppContent() {
         );
     }
 
+    // --- ZAKTUALIZOWANA NAWIGACJA DLA ZALOGOWANEGO UŻYTKOWNIKA ---
     if (userToken && isProfileComplete === true) {
         return (
             <Stack.Navigator initialRouteName="Dashboard" screenOptions={{ headerShown: false }}>
@@ -133,16 +135,24 @@ function AppContent() {
                         <DashboardScreen
                             {...props}
                             patientData={patientData}
-                            token={userToken} // <-- Przekazujemy token do Dashboardu
+                            token={userToken}
                             onLogout={handleLogout}
                             onNavigateToHistory={(data) =>
-                                // Przekazujemy token również jako parametr trasy do Historii
                                 props.navigation.navigate('VitalsHistory', { patientData: data, token: userToken })
+                            }
+                            /* --- NOWY PROP DO NAWIGACJI EKRANU EDYCJI PROFILU --- */
+                            onNavigateToProfileEdit={(data) =>
+                                props.navigation.navigate('ProfileEdit', { patientData: data, token: userToken })
                             }
                         />
                     )}
                 </Stack.Screen>
+
                 <Stack.Screen name="VitalsHistory" component={VitalsHistoryScreen} />
+
+                {/* --- DODANY EKRAN EDYCJI PROFILU DO STOSU NAWIGACJI --- */}
+                <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+
             </Stack.Navigator>
         );
     }
@@ -153,7 +163,6 @@ function AppContent() {
                 <LoginScreen
                     onNavigateToRegister={() => setCurrentScreen('register')}
                     onLoginSuccess={async (tokens) => {
-                        // ZAPIS TOKENU DO PAMIĘCI TELEFONU PO ZALOGOWANIU
                         await AsyncStorage.setItem('access_token', tokens.accessToken);
                         await AsyncStorage.setItem('refresh_token', tokens.refreshToken);
 

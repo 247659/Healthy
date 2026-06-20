@@ -2,11 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 
-// ZAKTUALIZUJ TEN IMPORT do biblioteki, której faktycznie używasz w swojej aplikacji do zapisu tokena.
-// Np. import AsyncStorage from '@react-native-async-storage/async-storage';
-// Poniższy kod przyjmuje globalnie dostępny mechanizm lub trzeba to dostosować.
-// Jeśli otrzymujesz token w `propsach`, lepiej przekazać go stamtąd.
-
 // --- ISTNIEJĄCE IKONY ---
 const UserIcon = ({ color = "#10B981", size = 24 }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><Circle cx="12" cy="7" r="4" /></Svg>
@@ -20,8 +15,6 @@ const ActivityIcon = ({ color = "#10B981", size = 24 }) => (
 const LogoutIcon = ({ color = "#EF4444", size = 24 }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><Polyline points="16 17 21 12 16 7" /><Line x1="21" y1="12" x2="9" y2="12" /></Svg>
 );
-
-// --- NOWA IKONA WYKRESU ---
 const ChartIcon = ({ color = "#3B82F6", size = 24 }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <Path d="M3 3v18h18" />
@@ -29,8 +22,13 @@ const ChartIcon = ({ color = "#3B82F6", size = 24 }) => (
         <Circle cx="18" cy="9" r="1" />
     </Svg>
 );
-
-// --- IKONY PARAMETRÓW ŻYCIOWYCH ---
+const StethoscopeIcon = ({ color = "#8B5CF6", size = 24 }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
+        <Path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" />
+        <Circle cx="20" cy="10" r="2" />
+    </Svg>
+);
 const HeartIcon = ({ color = "#EF4444", size = 24 }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></Svg>
 );
@@ -43,19 +41,22 @@ const WindIcon = ({ color = "#3B82F6", size = 24 }) => (
 
 interface DashboardScreenProps {
     patientData: any;
-    token: string | null; // <-- Nowy prop: token
+    token: string | null;
     onLogout: () => void;
     onNavigateToHistory: (patientData: any) => void;
+    onNavigateToProfileEdit: (patientData: any) => void; // <-- NOWY PROP
 }
 
-export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHistory }: DashboardScreenProps) => {
+export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHistory, onNavigateToProfileEdit }: DashboardScreenProps) => {
     const firstName = patientData?.firstName || 'Pacjencie';
     const [latestVitals, setLatestVitals] = useState<any>(null);
     const [isLoadingVitals, setIsLoadingVitals] = useState<boolean>(true);
 
+    const [doctors, setDoctors] = useState<any[]>([]);
+    const [isLoadingDoctors, setIsLoadingDoctors] = useState<boolean>(true);
+
     const fetchVitals = async () => {
         if (!patientData?.id || !token) return;
-
         try {
             const end = new Date();
             const start = new Date();
@@ -63,7 +64,6 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
 
             const API_URL = `http://10.0.2.2:8080/api/v1/vital-signs/patient/${patientData.id}?from=${start.toISOString()}&to=${end.toISOString()}`;
 
-            // WYSYŁKA Z TOKENEM JWT
             const response = await fetch(API_URL, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -89,8 +89,52 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         }
     };
 
+    const fetchDoctors = async () => {
+        if (!patientData?.id || !token) return;
+        setIsLoadingDoctors(true);
+
+        try {
+            const idsResponse = await fetch(`http://10.0.2.2:8080/api/v1/staff/patients/${patientData.id}/doctors-list`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!idsResponse.ok) throw new Error("Błąd podczas pobierania ID lekarzy");
+            const doctorIds: string[] = await idsResponse.json();
+
+            if (Array.isArray(doctorIds) && doctorIds.length > 0) {
+                const doctorsPromises = doctorIds.map(async (docId) => {
+                    const docResponse = await fetch(`http://10.0.2.2:8080/api/v1/staff/${docId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (docResponse.ok) {
+                        return await docResponse.json();
+                    }
+                    return null;
+                });
+
+                const doctorsData = await Promise.all(doctorsPromises);
+                setDoctors(doctorsData.filter(doc => doc !== null));
+            } else {
+                setDoctors([]);
+            }
+        } catch (error) {
+            console.error("Błąd podczas pobierania lekarzy:", error);
+            setDoctors([]);
+        } finally {
+            setIsLoadingDoctors(false);
+        }
+    };
+
     useEffect(() => {
         fetchVitals();
+        fetchDoctors();
         const intervalId = setInterval(fetchVitals, 30000);
         return () => clearInterval(intervalId);
     }, [patientData?.id, token]);
@@ -109,6 +153,7 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                     </TouchableOpacity>
                 </View>
 
+                {/* --- BIEŻĄCE PARAMETRY --- */}
                 <Text style={styles.sectionTitle}>Bieżące parametry</Text>
 
                 {isLoadingVitals && !latestVitals ? (
@@ -144,7 +189,6 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                     </View>
                 )}
 
-                {/* NOWY PRZYCISK: HISTORIA POMIARÓW */}
                 <TouchableOpacity
                     style={styles.historyButton}
                     onPress={() => onNavigateToHistory(patientData)}
@@ -159,6 +203,7 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                     <Text style={styles.historyChevron}>›</Text>
                 </TouchableOpacity>
 
+                {/* --- SZYBKI DOSTĘP --- */}
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Szybki dostęp</Text>
 
                 <View style={styles.gridContainer}>
@@ -170,13 +215,52 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                         <Text style={styles.gridCardSubtitle}>Umów lub sprawdź</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.gridCard}>
+                    {/* --- PODPIĘCIE NAWIGACJI DO PROFILU --- */}
+                    <TouchableOpacity
+                        style={styles.gridCard}
+                        onPress={() => onNavigateToProfileEdit(patientData)}
+                    >
                         <View style={styles.iconContainer}>
                             <UserIcon />
                         </View>
                         <Text style={styles.gridCardTitle}>Mój Profil</Text>
                         <Text style={styles.gridCardSubtitle}>Zarządzaj danymi</Text>
                     </TouchableOpacity>
+                </View>
+
+                {/* --- SEKCJA: PRZYPISANI LEKARZE --- */}
+                <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Przypisani lekarze</Text>
+                <View style={styles.doctorsContainer}>
+
+                    {isLoadingDoctors ? (
+                        <ActivityIndicator size="large" color="#8B5CF6" style={{ marginVertical: 20 }} />
+                    ) : doctors.length > 0 ? (
+                        doctors.map((doctor, index) => {
+                            const specName = doctor.specializations && doctor.specializations.length > 0
+                                ? (doctor.specializations[0].name || doctor.specializations[0])
+                                : 'Lekarz specjalista';
+
+                            const iconColor = index % 2 === 0 ? "#8B5CF6" : "#3B82F6";
+                            const avatarBg = index % 2 === 0 ? "#F3E8FF" : "#EFF6FF";
+
+                            return (
+                                <View key={doctor.id || index} style={styles.doctorCard}>
+                                    <View style={[styles.doctorAvatar, { backgroundColor: avatarBg }]}>
+                                        <StethoscopeIcon color={iconColor} size={24} />
+                                    </View>
+                                    <View style={styles.doctorInfo}>
+                                        <Text style={styles.doctorName}>Dr {doctor.firstName} {doctor.lastName}</Text>
+                                        <Text style={styles.doctorSpecialty}>{specName}</Text>
+                                    </View>
+                                </View>
+                            );
+                        })
+                    ) : (
+                        <View style={styles.noDataCard}>
+                            <Text style={styles.noDataText}>Obecnie nie masz przypisanych lekarzy.</Text>
+                        </View>
+                    )}
+
                 </View>
 
             </ScrollView>
@@ -202,9 +286,8 @@ const styles = StyleSheet.create({
     vitalLabel: { fontSize: 13, color: '#6B7280', marginTop: 4, fontWeight: '500' },
 
     noDataCard: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16, alignItems: 'center' },
-    noDataText: { color: '#6B7280', fontSize: 14 },
+    noDataText: { color: '#6B7280', fontSize: 14, textAlign: 'center' },
 
-    // STYLE DLA NOWEGO PRZYCISKU HISTORII
     historyButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -251,4 +334,52 @@ const styles = StyleSheet.create({
     iconContainer: { width: 48, height: 48, backgroundColor: '#ECFDF5', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
     gridCardTitle: { fontSize: 16, fontWeight: '700', color: '#1F2937', marginBottom: 4 },
     gridCardSubtitle: { fontSize: 13, color: '#6B7280' },
+
+    doctorsContainer: {
+        gap: 12,
+    },
+    doctorCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        padding: 16,
+        borderRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    doctorAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    doctorInfo: {
+        flex: 1,
+    },
+    doctorName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1F2937',
+    },
+    doctorSpecialty: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    contactButton: {
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
+    },
+    contactButtonText: {
+        color: '#10B981',
+        fontWeight: '600',
+        fontSize: 13,
+    }
 });
