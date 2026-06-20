@@ -11,38 +11,32 @@ import {
     ScrollView,
 } from 'react-native';
 import DatePicker from 'react-native-date-picker';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Polyline, Line } from 'react-native-svg';
 
-const API_URL = 'http://10.0.2.2:8080';
+const API_URL = 'http://10.0.2.2:8088'; // Zmień na 8088 jeśli tego używasz
 
-// --- IKONA POWROTU (WSTECZ) ---
-const BackIcon = ({ color = "#1F2937", size = 26 }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M15 18l-6-6 6-6" />
+// --- IKONA WYLOGOWANIA Z DASHBOARDU ---
+const LogoutIcon = ({ color = "#EF4444", size = 24 }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <Polyline points="16 17 21 12 16 7" />
+        <Line x1="21" y1="12" x2="9" y2="12" />
     </Svg>
 );
 
 interface ProfileSetupScreenProps {
     patientData: any;
     onProfileUpdated: () => void;
-    onBack: () => void; // Prop do wracania do Dashboardu
+    onLogout: () => void;
 }
 
-export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: ProfileSetupScreenProps) => {
-
-    // Rozbicie adresu na ulicę, kod i miasto dla formularza
-    const addressParts = patientData?.address ? patientData.address.split(',') : ['', ''];
-    const streetPart = addressParts[0] ? addressParts[0].trim() : '';
-    const codeAndCity = addressParts[1] ? addressParts[1].trim().split(' ') : ['', ''];
-    const codePart = codeAndCity[0] ? codeAndCity[0].trim() : '';
-    const cityPart = codeAndCity.slice(1).join(' ').trim();
-
+export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onLogout }: ProfileSetupScreenProps) => {
     const [formData, setFormData] = useState({
         pesel: patientData?.pesel || '',
         phoneNumber: patientData?.phoneNumber || '',
-        street: streetPart,
-        postalCode: codePart,
-        city: cityPart,
+        street: '',
+        postalCode: '',
+        city: '',
         dateOfBirth: patientData?.dateOfBirth || '',
     });
 
@@ -50,16 +44,21 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
     const [openDateModal, setOpenDateModal] = useState(false);
     const [date, setDate] = useState(new Date(1990, 0, 1));
 
+    // --- STANY DLA BANERÓW BŁĘDU/SUKCESU ---
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+    // --- FUNKCJE WALIDACYJNE ---
     const validatePESEL = (pesel: string): boolean => {
         if (!/^\d{11}$/.test(pesel)) return false;
+
         const weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
         let sum = 0;
+
         for (let i = 0; i < 10; i++) {
             sum += parseInt(pesel[i], 10) * weights[i];
         }
+
         const controlDigit = (10 - (sum % 10)) % 10;
         return controlDigit === parseInt(pesel[10], 10);
     };
@@ -69,7 +68,9 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
         return /^\d{9}$/.test(cleaned);
     };
 
+    // --- OBSŁUGA FORMULARZA ---
     const handleSubmit = async () => {
+        // Czyszczenie wiadomości przed każdą nową próbą
         setErrorMessage(null);
         setSuccessMessage(null);
 
@@ -110,11 +111,10 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
 
             setSuccessMessage('Profil został pomyślnie zaktualizowany.');
 
-            // Opóźnienie przed wróceniem do Dashboardu
+            // Opóźnienie przed przekierowaniem
             setTimeout(() => {
                 onProfileUpdated();
-                onBack(); // Wracamy do Dashboardu
-            }, 1500);
+            }, 2000);
 
         } catch (error: any) {
             setErrorMessage(error.message);
@@ -127,29 +127,31 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
 
-                {/* NAGŁÓWEK ZE STRZAŁKĄ POWROTU */}
-                <View style={styles.headerRow}>
-                    <TouchableOpacity style={styles.backButton} onPress={onBack} disabled={isLoading || !!successMessage}>
-                        <BackIcon />
+                {/* WYŚRODKOWANY NAGŁÓWEK Z IKONĄ WYLOGOWANIA PO PRAWEJ */}
+                <View style={styles.headerRow} pointerEvents="box-none">
+                    <Text style={styles.headerTitle}>Uzupełnij profil</Text>
+                    <TouchableOpacity style={styles.headerLogoutButton} onPress={onLogout} activeOpacity={0.7} disabled={isLoading || !!successMessage}>
+                        <LogoutIcon size={20} color="#EF4444" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Edycja profilu</Text>
                 </View>
 
-                <Text style={styles.subtitle}>Zaktualizuj swoje dane medyczne i adresowe.</Text>
+                <Text style={styles.subtitle}>Dzięki tym danym będziemy mogli lepiej dbać o Twoje zdrowie.</Text>
 
-                {errorMessage && (
+                {/* BANERY BŁĘDÓW I SUKCESÓW */}
+                {errorMessage ? (
                     <View style={styles.errorContainer}>
                         <Text style={styles.errorText}>{errorMessage}</Text>
                     </View>
-                )}
+                ) : null}
 
-                {successMessage && (
+                {successMessage ? (
                     <View style={styles.successContainer}>
                         <Text style={styles.successText}>{successMessage}</Text>
                     </View>
-                )}
+                ) : null}
 
                 <View style={styles.inputContainer}>
+
                     {/* Data urodzenia */}
                     <View>
                         <Text style={styles.inputLabel}>Data urodzenia</Text>
@@ -214,9 +216,10 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
                         />
                     </View>
 
-                    {/* Adres */}
+                    {/* Sekcja adresu */}
                     <Text style={styles.sectionLabel}>Adres zamieszkania</Text>
 
+                    {/* Ulica */}
                     <View>
                         <Text style={styles.inputLabel}>Ulica i numer domu/mieszkania</Text>
                         <TextInput
@@ -229,6 +232,7 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
                         />
                     </View>
 
+                    {/* Kod pocztowy i Miasto */}
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.inputLabel}>Kod pocztowy</Text>
@@ -262,7 +266,7 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
                     onPress={handleSubmit}
                     disabled={isLoading || !!successMessage}
                 >
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Zapisz zmiany</Text>}
+                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Zapisz dane</Text>}
                 </TouchableOpacity>
 
             </ScrollView>
@@ -272,35 +276,62 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onBack }: Pr
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFFFFF' },
-    scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 40 },
+    scrollContainer: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 40 },
 
     headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#F3F4F6',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16
+        marginBottom: 12,
+        position: 'relative',
+        minHeight: 44,
     },
     headerTitle: {
-        fontSize: 28,
+        fontSize: 30,
         fontWeight: '900',
         color: '#1F2937',
+        textAlign: 'center',
+    },
+    headerLogoutButton: {
+        position: 'absolute',
+        right: 0,
+        padding: 10,
+        backgroundColor: '#FEE2E2',
+        borderRadius: 12,
+        zIndex: 10,
+        elevation: 5,
     },
 
-    subtitle: { fontSize: 16, color: '#6B7280', marginBottom: 32 },
+    subtitle: { fontSize: 16, color: '#6B7280', marginBottom: 32, textAlign: 'center' },
 
-    errorContainer: { backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#FCA5A5' },
-    errorText: { color: '#EF4444', fontSize: 14, textAlign: 'center', fontWeight: '500' },
-
-    successContainer: { backgroundColor: '#D1FAE5', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#6EE7B7' },
-    successText: { color: '#065F46', fontSize: 14, textAlign: 'center', fontWeight: '600' },
+    // NOWE STYLE DLA BANERÓW
+    errorContainer: {
+        backgroundColor: '#FEE2E2',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+    },
+    errorText: {
+        color: '#EF4444',
+        fontSize: 14,
+        textAlign: 'center',
+        fontWeight: '500',
+    },
+    successContainer: {
+        backgroundColor: '#D1FAE5',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#6EE7B7',
+    },
+    successText: {
+        color: '#065F46',
+        fontSize: 14,
+        textAlign: 'center',
+        fontWeight: '600',
+    },
 
     inputContainer: { gap: 16, marginBottom: 32 },
     inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 },
@@ -313,7 +344,14 @@ const styles = StyleSheet.create({
     sectionLabel: { fontSize: 18, fontWeight: '800', color: '#1F2937', marginTop: 16, marginBottom: 8, marginLeft: 4 },
     row: { flexDirection: 'row', gap: 16 },
 
-    primaryButton: { backgroundColor: '#10B981', padding: 18, borderRadius: 16, alignItems: 'center', elevation: 4, marginBottom: 16 },
+    primaryButton: {
+        backgroundColor: '#10B981',
+        padding: 18,
+        borderRadius: 16,
+        alignItems: 'center',
+        elevation: 4,
+        marginBottom: 16,
+    },
     primaryButtonDisabled: { backgroundColor: '#9CA3AF', shadowOpacity: 0, elevation: 0 },
     primaryButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal, Alert } from 'react-native';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 
 // --- ISTNIEJĄCE IKONY ---
@@ -55,6 +55,11 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
     const [doctors, setDoctors] = useState<any[]>([]);
     const [isLoadingDoctors, setIsLoadingDoctors] = useState<boolean>(true);
 
+    // --- NOWE STANY DO DODAWANIA LEKARZY ---
+    const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+    const [allDoctors, setAllDoctors] = useState<any[]>([]);
+    const [isLoadingAllDoctors, setIsLoadingAllDoctors] = useState<boolean>(false);
+
     const fetchVitals = async () => {
         if (!patientData?.id || !token) return;
         try {
@@ -89,13 +94,11 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         }
     };
 
-    // --- ZAKTUALIZOWANE POBIERANIE LEKARZY Z JEDNEGO ENDPOINTU ---
     const fetchDoctors = async () => {
         if (!patientData?.id || !token) return;
         setIsLoadingDoctors(true);
 
         try {
-            // Uderzamy do nowego endpointu, który od razu zwraca listę obiektów MedicalStaffEssentialResponse
             const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/patients/${patientData.id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -103,7 +106,7 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                 }
             });
 
-            if (!response.ok) throw new Error("Błąd podczas pobierania lekarzy przypisanych do pacjenta");
+            if (!response.ok) throw new Error("Błąd podczas pobierania przypisanych lekarzy");
 
             const doctorsData = await response.json();
 
@@ -120,12 +123,61 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         }
     };
 
+    // --- FUNKCJA OTWIERAJĄCA MODAL I POBIERAJĄCA WSZYSTKICH LEKARZY ---
+    const openAddDoctorModal = async () => {
+        setIsModalVisible(true);
+        setIsLoadingAllDoctors(true);
+        try {
+            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/essential`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error("Błąd pobierania listy lekarzy");
+            const data = await response.json();
+            setAllDoctors(data);
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Błąd", "Nie udało się załadować listy wszystkich lekarzy.");
+        } finally {
+            setIsLoadingAllDoctors(false);
+        }
+    };
+
+    // --- FUNKCJA PRZYPISUJĄCA LEKARZA DO PACJENTA ---
+    const handleAssignDoctor = async (doctorId: string) => {
+        try {
+            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/${doctorId}/assign/${patientData.id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error("Nie udało się przypisać lekarza");
+
+            Alert.alert("Sukces", "Lekarz został pomyślnie przypisany!");
+            setIsModalVisible(false);
+
+            // Odśwież listę przypisanych lekarzy
+            fetchDoctors();
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Błąd", "Wystąpił błąd podczas przypisywania lekarza.");
+        }
+    };
+
     useEffect(() => {
         fetchVitals();
         fetchDoctors();
         const intervalId = setInterval(fetchVitals, 30000);
         return () => clearInterval(intervalId);
     }, [patientData?.id, token]);
+
+    // Filtrowanie z pobranej listy lekarzy (usuwa tych, których już mamy w "doctors")
+    const availableDoctors = allDoctors.filter(doc => !doctors.find(d => d.id === doc.id));
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -203,7 +255,6 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                         <Text style={styles.gridCardSubtitle}>Umów lub sprawdź</Text>
                     </TouchableOpacity>
 
-                    {/* --- PODPIĘCIE NAWIGACJI DO PROFILU --- */}
                     <TouchableOpacity
                         style={styles.gridCard}
                         onPress={() => onNavigateToProfileEdit(patientData)}
@@ -217,9 +268,14 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                 </View>
 
                 {/* --- SEKCJA: PRZYPISANI LEKARZE --- */}
-                <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Przypisani lekarze</Text>
-                <View style={styles.doctorsContainer}>
+                <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionTitleNoMargin}>Przypisani lekarze</Text>
+                    <TouchableOpacity style={styles.addButton} onPress={openAddDoctorModal}>
+                        <Text style={styles.addButtonText}>+ Dodaj</Text>
+                    </TouchableOpacity>
+                </View>
 
+                <View style={styles.doctorsContainer}>
                     {isLoadingDoctors ? (
                         <ActivityIndicator size="large" color="#8B5CF6" style={{ marginVertical: 20 }} />
                     ) : doctors.length > 0 ? (
@@ -248,10 +304,53 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                             <Text style={styles.noDataText}>Obecnie nie masz przypisanych lekarzy.</Text>
                         </View>
                     )}
-
                 </View>
 
             </ScrollView>
+
+            {/* --- MODAL DO WYBORU I DODAWANIA LEKARZA --- */}
+            <Modal visible={isModalVisible} transparent={true} animationType="slide" onRequestClose={() => setIsModalVisible(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Wybierz lekarza</Text>
+
+                        {isLoadingAllDoctors ? (
+                            <ActivityIndicator size="large" color="#10B981" style={{ marginVertical: 40 }} />
+                        ) : availableDoctors.length > 0 ? (
+                            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                                {availableDoctors.map((doc, i) => {
+                                    const specName = doc.specializationNames && doc.specializationNames.length > 0
+                                        ? doc.specializationNames[0]
+                                        : 'Lekarz specjalista';
+
+                                    return (
+                                        <View key={doc.id || i} style={styles.modalDoctorCard}>
+                                            <View style={styles.modalDoctorInfo}>
+                                                <Text style={styles.modalDoctorName}>Dr {doc.firstName} {doc.lastName}</Text>
+                                                <Text style={styles.modalDoctorSpecialty}>{specName}</Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                style={styles.modalAssignBtn}
+                                                onPress={() => handleAssignDoctor(doc.id)} // Teraz doc.id na pewno istnieje
+                                            >
+                                                <Text style={styles.modalAssignBtnText}>Dodaj</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    );
+                                })}
+                            </ScrollView>
+                        ) : (
+                            <View style={{ padding: 20, alignItems: 'center' }}>
+                                <Text style={styles.noDataText}>Brak lekarzy do przypisania.</Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity onPress={() => setIsModalVisible(false)} style={styles.modalCloseBtn}>
+                            <Text style={styles.modalCloseBtnText}>Zamknij</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -266,6 +365,31 @@ const styles = StyleSheet.create({
     logoutButton: { padding: 10, backgroundColor: '#FEE2E2', borderRadius: 12 },
 
     sectionTitle: { fontSize: 20, fontWeight: '700', color: '#1F2937', marginBottom: 16 },
+
+    // --- NOWE STYLE DLA SEKCJI Z PRZYCISKIEM DODAJ ---
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 24,
+        marginBottom: 16
+    },
+    sectionTitleNoMargin: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1F2937'
+    },
+    addButton: {
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    addButtonText: {
+        color: '#10B981',
+        fontWeight: '700',
+        fontSize: 14,
+    },
 
     vitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between' },
     vitalCard: { backgroundColor: '#FFFFFF', width: '47%', borderRadius: 20, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
@@ -359,15 +483,79 @@ const styles = StyleSheet.create({
         color: '#6B7280',
         marginTop: 2,
     },
-    contactButton: {
-        backgroundColor: '#ECFDF5',
+
+    // --- NOWE STYLE DLA MODALA LEKARZY ---
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24
+    },
+    modalContent: {
+        width: '100%',
+        maxHeight: '80%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 10,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1F2937',
+        marginBottom: 16,
+        textAlign: 'center'
+    },
+    modalScroll: {
+        marginBottom: 16
+    },
+    modalDoctorCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6'
+    },
+    modalDoctorInfo: {
+        flex: 1,
+        paddingRight: 12
+    },
+    modalDoctorName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1F2937'
+    },
+    modalDoctorSpecialty: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2
+    },
+    modalAssignBtn: {
+        backgroundColor: '#10B981',
         paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 12,
+        borderRadius: 12
     },
-    contactButtonText: {
-        color: '#10B981',
-        fontWeight: '600',
-        fontSize: 13,
+    modalAssignBtnText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 13
+    },
+    modalCloseBtn: {
+        backgroundColor: '#F3F4F6',
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center'
+    },
+    modalCloseBtnText: {
+        color: '#4B5563',
+        fontSize: 16,
+        fontWeight: '700'
     }
 });
