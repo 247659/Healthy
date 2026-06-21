@@ -40,7 +40,7 @@ public class VitalsServiceImpl implements VitalsService {
         this.vitalThresholdMapper = vitalThresholdMapper;
         this.vitalThresholdRepository = vitalThresholdRepository;
         this.influxDBClient = influxDBClient;
-        this.writeApi = influxDBClient.getWriteApi();
+        this.writeApi = influxDBClient.makeWriteApi();
     }
 
     @Value("${influxdb.bucket}")
