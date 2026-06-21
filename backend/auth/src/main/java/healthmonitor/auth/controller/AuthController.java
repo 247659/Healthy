@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -49,5 +51,16 @@ public class AuthController {
     public ResponseEntity<TokenResponseDto> refreshToken(@RequestBody RefreshTokenRequestDto dto) {
         TokenResponseDto newTokens = authService.refresh(dto);
         return ResponseEntity.ok(newTokens);
+    }
+
+    @PutMapping("/users/{userId}/password")
+    public ResponseEntity<Void> changePassword(
+            @PathVariable String userId,
+            @RequestBody Map<String, String> request) {
+
+        String newPassword = request.get("password");
+        authService.changePassword(userId, newPassword);
+
+        return ResponseEntity.ok().build();
     }
 }

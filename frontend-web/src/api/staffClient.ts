@@ -17,7 +17,7 @@ export const medicalStaffService = {
 
     setupProfile: async (data: MedicalStaff): Promise<MedicalStaff> => {
         const response = await api.post<MedicalStaff>(
-            `/staff/$`,
+            `/staff`,
             data,
         )
         return response.data

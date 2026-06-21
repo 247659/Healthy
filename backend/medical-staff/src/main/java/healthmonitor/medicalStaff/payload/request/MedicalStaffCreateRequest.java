@@ -25,6 +25,9 @@ public record MedicalStaffCreateRequest(
         String licenseNumber,
 
         @NotNull
-        List<SpecializationRequest> specializations
+        List<SpecializationRequest> specializations,
+
+        @NotBlank
+        String password
 ) {
 }

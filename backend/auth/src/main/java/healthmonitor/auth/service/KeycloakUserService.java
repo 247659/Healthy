@@ -215,4 +215,21 @@ public class KeycloakUserService {
             throw new AuthException(ErrorCode.TOKEN_EXPIRED);
         }
     }
+
+    public void changeUserPassword(String userId, String newPassword) {
+        Keycloak keycloakClient = getKeycloakClient();
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setTemporary(false);
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(newPassword);
+
+        try {
+            keycloakClient.realm(realm).users().get(userId).resetPassword(credential);
+            log.info("Zmieniono hasło dla użytkownika Keycloak o ID: {}", userId);
+        } catch (Exception e) {
+            log.error("Błąd podczas zmiany hasła w Keycloak dla ID: {}", userId, e);
+            throw new AuthException(ErrorCode.INTERVAL_SERVER_ERROR);
+        }
+    }
 }

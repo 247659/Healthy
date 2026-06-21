@@ -39,4 +39,9 @@ public class StandardAuthService implements AuthService {
     public TokenResponseDto refresh(RefreshTokenRequestDto refreshTokenRequestDto) {
         return keycloakUserService.refreshAccessToken(refreshTokenRequestDto.getRefreshToken());
     }
+
+    @Override
+    public void changePassword(String userId, String newPassword) {
+        keycloakUserService.changeUserPassword(userId, newPassword);
+    }
 }
