@@ -117,6 +117,8 @@ public class KeycloakUserService {
 
             return new TokenResponseDto(accessToken, refreshToken);
 
+        } catch (AuthException e) {
+            throw e;
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Brak dostępu")) {
                 throw e;
