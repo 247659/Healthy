@@ -72,10 +72,7 @@ api.interceptors.response.use(
 
             const refreshToken = localStorage.getItem('refresh_token');
 
-            console.log("PRZED SPRAWDZENIEM CZY MAM RESFRESH TOKEN")
-
             if (!refreshToken) {
-                console.log("NIE MAM REFRESH TOKEN")
                 // Brak tokena odświeżającego - wylogowujemy natychmiast
                 isRefreshing = false;
                 localStorage.removeItem('access_token');

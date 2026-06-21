@@ -3,6 +3,7 @@ package healthmonitor.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
@@ -13,7 +14,7 @@ import java.util.List;
 public class CorsConfig {
 
     @Bean
-    public CorsWebFilter corsWebFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfig = new CorsConfiguration();
         // Sprecyzuj domeny (nie używaj "*")
         corsConfig.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
@@ -25,6 +26,6 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig); // Zastosuj dla wszystkich ścieżek
 
-        return new CorsWebFilter(source);
+        return source;
     }
 }
