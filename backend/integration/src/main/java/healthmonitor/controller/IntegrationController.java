@@ -1,13 +1,10 @@
 package healthmonitor.controller;
 
-import healthmonitor.config.RabbitMQConfig;
 import healthmonitor.dto.VitalSignsDto;
 import healthmonitor.service.IntegrationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,16 +16,12 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class IntegrationController {
 
-    private final RabbitTemplate rabbitTemplate;
     private final IntegrationService integrationService;
 
     @PostMapping
     public ResponseEntity<Void> receiveVitals(@Valid @RequestBody VitalSignsDto dto) {
-        log.info("Measurements received for patient: {}", dto.getPatientId());
-
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "vitals.incoming", dto);
-
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+        integrationService.receiveVitals(dto);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
