@@ -6,8 +6,26 @@ import argparse
 import logging
 from datetime import datetime, timezone, timedelta
 import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# Konfiguracja loggera
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status": "UP"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+def run_health_server():
+    server = HTTPServer(('0.0.0.0', 8000), HealthCheckHandler)
+    server.serve_forever()
+
+threading.Thread(target=run_health_server, daemon=True).start()
+
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
@@ -15,14 +33,12 @@ class PatientSimulator:
     def __init__(self, patient_id):
         self.patient_id = patient_id
 
-        # Fizjologiczne wartości początkowe
         self.hr = 75.0
         self.sys_bp = 120.0
         self.dia_bp = 80.0
         self.temp = 36.6
         self.spo2 = 98.0
 
-        # Stan pacjenta (Maszyna stanowa)
         self.is_deteriorating = False
         self.ticks_in_anomaly = 0
         self.anomaly_duration = 0
@@ -95,7 +111,6 @@ def run_realtime(args):
 
     patient = PatientSimulator(args.patient_id)
 
-    # Nagłówek dla zwykłego JSON
     api_headers = {"Content-Type": "application/json"}
 
     try:
@@ -133,7 +148,6 @@ def run_batch(args):
     anomaly_count = 0
     total_records = 0
 
-    # KROK 1: Generowanie pliku na dysk
     with open(filename, "w", encoding="utf-8") as f:
         while current_time < end_time:
             payload = patient.generate_vitals(timestamp=current_time)
@@ -145,10 +159,8 @@ def run_batch(args):
 
     logging.info(f"[SUKCES] Wygenerowano {total_records} rekordów do pliku: {filename}")
 
-    # KROK 2: Wysłanie pliku do Integration Service
     batch_url = f"{args.url}/batch"
 
-    # Pobranie rozmiaru pliku w bajtach
     file_size_bytes = os.path.getsize(filename)
     file_size_mb = file_size_bytes / (1024 * 1024)
 

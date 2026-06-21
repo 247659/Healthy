@@ -11,7 +11,6 @@ from keras.layers import LSTM, Dense, RepeatVector, TimeDistributed
 from vitals_repository import VitalsRepository
 from data_normalizer import get_normalizer, PARAM_ORDER
 
-
 class AITrainer:
     def __init__(self, repository: VitalsRepository, models_dir: str = "models/"):
         self.repository = repository
