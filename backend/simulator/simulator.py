@@ -170,7 +170,7 @@ def main():
     parser = argparse.ArgumentParser(description="Symulator IoT dla parametrów życiowych")
     parser.add_argument('--mode', choices=['realtime', 'batch'], default='realtime',
                         help="Tryb działania: 'realtime' (HTTP) lub 'batch' (zapis do pliku i wysyłka batch)")
-    parser.add_argument('--patient-id', type=str, default='patient_1234',
+    parser.add_argument('--patient-id', type=str, default='35ccfead-5a9f-4784-ab78-4bdb25aee903',
                         help="ID pacjenta")
 
     default_api_url = os.getenv("API_URL", "http://localhost:8083/api/v1/integration")

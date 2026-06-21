@@ -145,6 +145,27 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         }
     };
 
+    const handleUnassignDoctor = async (doctorId: string) => {
+        try {
+            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/${doctorId}/unassign/${patientData.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error("Nie udało się odpiąć lekarza");
+
+            Alert.alert("Sukces", "Lekarz został odpięty.");
+            // Odśwież listę po udanym odpięciu
+            fetchDoctors();
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Błąd", "Wystąpił błąd podczas odpinania lekarza.");
+        }
+    };
+
     // --- FUNKCJA PRZYPISUJĄCA LEKARZA DO PACJENTA ---
     const handleAssignDoctor = async (doctorId: string) => {
         try {
@@ -296,6 +317,21 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                                         <Text style={styles.doctorName}>Dr {doctor.firstName} {doctor.lastName}</Text>
                                         <Text style={styles.doctorSpecialty}>{specName}</Text>
                                     </View>
+
+                                    {/* DODANY PRZYCISK ODPIĘCIA */}
+                                    <TouchableOpacity
+                                        style={styles.unassignButton}
+                                        onPress={() => Alert.alert(
+                                            "Potwierdź",
+                                            "Czy na pewno chcesz odpiąć tego lekarza?",
+                                            [
+                                                { text: "Anuluj", style: "cancel" },
+                                                { text: "Tak", onPress: () => handleUnassignDoctor(doctor.id) }
+                                            ]
+                                        )}
+                                    >
+                                        <Text style={styles.unassignButtonText}>Odepnij</Text>
+                                    </TouchableOpacity>
                                 </View>
                             );
                         })
@@ -557,5 +593,16 @@ const styles = StyleSheet.create({
         color: '#4B5563',
         fontSize: 16,
         fontWeight: '700'
-    }
+    },
+    unassignButton: {
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    unassignButtonText: {
+        color: '#EF4444',
+        fontWeight: '700',
+        fontSize: 12,
+    },
 });

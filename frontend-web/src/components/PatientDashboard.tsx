@@ -74,6 +74,22 @@ const PatientDashboard = () => {
         navigate(`/patient/${patient.id}`, { state: { patient } });
     };
 
+    const handleUnassignPatient = async (patientId: string) => {
+        try {
+            // Zakładam, że taka metoda istnieje w Twoim API
+            await medicalStaffService.unassignPatient(doctorId, patientId);
+
+            const patientToRemove = assignedPatients.find(p => p.id === patientId);
+            if (patientToRemove) {
+                setPatients(prev => [...prev, patientToRemove]);
+                setAssignedPatients(prev => prev.filter(p => p.id !== patientId));
+            }
+        } catch (err) {
+            console.error("Błąd odpinania pacjenta:", err);
+            alert("Wystąpił błąd podczas odpinania pacjenta.");
+        }
+    };
+
     if (isLoading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f4f7f6', color: '#555', fontSize: '18px' }}>
@@ -114,22 +130,28 @@ const PatientDashboard = () => {
                 <div><span style={{ color: '#a0aec0', fontSize: '12px', display: 'block' }}>Email</span> {patient.email || 'Brak'}</div>
             </div>
 
-            <div style={{ paddingTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ paddingTop: '10px', display: 'flex', gap: '10px' }}>
                 {isAssigned ? (
-                    <button
-                        style={{ padding: '12px 24px', backgroundColor: '#3182ce', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' }}
-                        onClick={() => handleOpenPatientCard(patient)}
-                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2b6cb0'}
-                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3182ce'}
-                    >
-                        Otwórz kartę pacjenta
-                    </button>
+                    <>
+                        <button
+                            style={{ flex: 1, padding: '12px', backgroundColor: '#3182ce', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', cursor: 'pointer' }}
+                            onClick={() => handleOpenPatientCard(patient)}
+                        >
+                            Karta
+                        </button>
+                        <button
+                            style={{ flex: 1, padding: '12px', backgroundColor: '#e53e3e', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', cursor: 'pointer' }}
+                            onClick={() => handleUnassignPatient(patient.id)}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#c53030'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#e53e3e'}
+                        >
+                            Odepnij
+                        </button>
+                    </>
                 ) : (
                     <button
-                        style={{ padding: '12px 24px', backgroundColor: '#38a169', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' }}
+                        style={{ padding: '12px 24px', backgroundColor: '#38a169', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', width: '100%' }}
                         onClick={() => handleAssignPatient(patient.id)}
-                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2f855a'}
-                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#38a169'}
                     >
                         + Przypisz do mnie
                     </button>

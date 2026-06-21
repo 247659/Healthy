@@ -10,7 +10,7 @@ export const medicalStaffService = {
     },
 
     assignPatient: async (doctorId: string, patientId: string) => {
-        await api.get(
+        await api.post(
             `/staff/${doctorId}/assign/${patientId}`
         );
     },
@@ -29,5 +29,9 @@ export const medicalStaffService = {
             data
         )
         return response.data
-    }
+    },
+
+    unassignPatient: async (doctorId: string, patientId: string) => {
+        await api.delete(`/staff/${doctorId}/unassign/${patientId}`);
+    },
 }
