@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PatientController.class)
-public class PatientControllerIT {
+public class PatientControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
