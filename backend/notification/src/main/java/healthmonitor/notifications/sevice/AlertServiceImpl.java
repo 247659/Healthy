@@ -1,20 +1,15 @@
 package healthmonitor.notifications.sevice;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import healthmonitor.notifications.communication.AlertNotifier;
 import healthmonitor.notifications.communication.MedicalStaffClient;
-import healthmonitor.notifications.config.RabbitMQConfig;
 import healthmonitor.notifications.model.Alert;
 import healthmonitor.notifications.model.AlertDto;
 import healthmonitor.notifications.model.AlertEventMessage;
 import healthmonitor.notifications.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 
@@ -25,39 +20,30 @@ public class AlertServiceImpl implements AlertService {
 
     private final AlertRepository alertRepository;
     private final MedicalStaffClient medicalStaffClient;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final AlertNotifier alertNotifier;
+
     @Override
-    @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     @Transactional
-    public void processAlert(AlertEventMessage alertDto) throws JsonProcessingException {
+    public void processAlert(AlertEventMessage alertDto) {
         log.info("Receiver alert for user with ID: {}", alertDto.getPatientId());
+        Alert alert = Alert.builder()
+                .patientId(alertDto.getPatientId())
+                .riskScore(alertDto.getRiskScore())
+                .severity(alertDto.getSeverity())
+                .message(alertDto.getMessage())
+                .details(alertDto.getDetails())
+                .recommendation(alertDto.getRecommendation())
+                .forecastNote(alertDto.getForecastNote())
+                .method(alertDto.getMethod())
+                .timestamp(alertDto.getTimestamp())
+                .build();
 
+        Alert save = alertRepository.save(alert);
+        log.info("Alert saved in database with ID: {}", save.getAlertId());
         try {
-            Alert alert = Alert.builder()
-                    .patientId(alertDto.getPatientId())
-                    .riskScore(alertDto.getRiskScore())
-                    .severity(alertDto.getSeverity())
-                    .message(alertDto.getMessage())
-                    .details(alertDto.getDetails())
-                    .recommendation(alertDto.getRecommendation())
-                    .forecastNote(alertDto.getForecastNote())
-                    .method(alertDto.getMethod())
-                    .timestamp(alertDto.getTimestamp())
-                    .build();
-
-            Alert save = alertRepository.save(alert);
-            log.info("Alert saved in database with ID: {}", save.getAlertId());
-
             sendNotificationToDoctors(save);
-        } catch (WebClientResponseException e) {
-            log.error("HTTP error from MedicalStaffService: {}", e.getStatusCode(), e);
-
-        } catch (WebClientRequestException e) {
-            log.error("Connection error to MedicalStaffService", e);
-
         } catch (Exception e) {
             log.error("Error while saving alert: {}", e.getMessage());
-            throw e;
         }
     }
 
@@ -85,15 +71,7 @@ public class AlertServiceImpl implements AlertService {
             return;
         }
 
-        for (String doctorId : doctorIds) {
-            // Spring pod maską wysyła to na adres: /user/{doctorId}/queue/alerts
-            messagingTemplate.convertAndSendToUser(
-                    doctorId,
-                    "/queue/alerts",
-                    alert
-            );
-            log.info("WebSocket notification sent to doctor: {}", doctorId);
-        }
+        alertNotifier.notifyDoctors(alert, doctorIds);
     }
 
     private AlertDto mapToDto(Alert alert) {
