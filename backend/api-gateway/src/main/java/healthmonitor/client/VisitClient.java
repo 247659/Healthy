@@ -1,11 +1,12 @@
 package healthmonitor.client;
 
 import healthmonitor.payload.VisitClientResponse;
-import jakarta.ws.rs.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -26,11 +27,11 @@ public class VisitClient {
                 .retrieve()
                 .onStatus(
                         HttpStatusCode::is4xxClientError,
-                        response -> Mono.error(new NotFoundException("Visit not found"))
+                        response -> Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Visit not found"))
                 )
                 .onStatus(
                         HttpStatusCode::is5xxServerError,
-                        response -> Mono.error(new IllegalStateException("Visit service is unavailable"))
+                        response -> Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Visit service is unavailable"))
                 )
                 .bodyToMono(VisitClientResponse.class)
                 .timeout(Duration.ofSeconds(10));
