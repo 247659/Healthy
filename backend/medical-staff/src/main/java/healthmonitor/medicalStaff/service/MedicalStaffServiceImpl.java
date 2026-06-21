@@ -1,5 +1,6 @@
 package healthmonitor.medicalStaff.service;
 
+import healthmonitor.client.AuthClient;
 import healthmonitor.client.PatientClient;
 import healthmonitor.medicalStaff.mapper.MedicalStaffMapper;
 import healthmonitor.medicalStaff.model.MedicalStaff;
@@ -14,11 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +28,7 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     private final MedicalStaffRepository medicalStaffRepository;
     private final MedicalStaffMapper medicalStaffMapper;
     private final PatientClient patientClient;
-    private final WebClient.Builder webClientBuilder;
+    private final AuthClient authClient;
 
     @Override
     public List<MedicalStaffResponse> getAll() {
@@ -47,32 +46,11 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     @Override
     @Transactional
     public MedicalStaffResponse save(MedicalStaffCreateRequest request) {
-
-        updatePasswordInKeycloak(request.id(), request.password());
-
+        authClient.updatePassword(request.id(), request.password());
         MedicalStaff medicalStaff = medicalStaffMapper.toEntity(request);
         MedicalStaff medicalStaffSaved = medicalStaffRepository.save(medicalStaff);
 
         return medicalStaffMapper.toResponse(medicalStaffSaved);
-    }
-
-    private void updatePasswordInKeycloak(String keycloakUserId, String newPassword) {
-        try {
-            Map<String, String> body = Map.of("password", newPassword);
-
-            webClientBuilder.build()
-                    .put()
-                    .uri("http://localhost:8080/api/v1/auth/users/" + keycloakUserId + "/password")
-                    .bodyValue(body)
-                    .retrieve()
-                    .toBodilessEntity()
-                    .block(); // block() bo jesteśmy w kodzie synchronicznym
-
-            log.info("Zlecono zmianę hasła w auth-service dla ID: {}", keycloakUserId);
-        } catch (Exception e) {
-            log.error("Nie udało się zaktualizować hasła w Keycloak dla użytkownika: {}", keycloakUserId, e);
-            throw new RuntimeException("Aktualizacja hasła w Keycloak nie powiodła się", e);
-        }
     }
 
     @Override
@@ -86,7 +64,7 @@ public class MedicalStaffServiceImpl implements MedicalStaffService {
     @Transactional
     public MedicalStaffResponse update(String id, MedicalStaffRequest request) {
         if (request.password() != null && !request.password().trim().isEmpty()) {
-            updatePasswordInKeycloak(id, request.password());
+            authClient.updatePassword(id, request.password());
         }
 
         MedicalStaff medicalStaff = getEntity(id);
