@@ -15,6 +15,7 @@ public class RabbitMQConfig {
     public static final String EXCHANGE_NAME = "iot.vitals.exchange";
     public static final String BATCH_QUEUE = "vitals.batch";
     public static final String ROUTING_KEY = "vitals.batch.incoming";
+    public static final String VITALS_ROUTING_KEY = "vitals.incoming";
 
     @Bean
     public TopicExchange vitalsExchange() {

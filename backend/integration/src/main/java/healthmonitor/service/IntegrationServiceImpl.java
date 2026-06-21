@@ -1,11 +1,11 @@
 package healthmonitor.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import healthmonitor.config.RabbitMQConfig;
 import healthmonitor.dto.VitalSignsDto;
+import healthmonitor.publisher.BatchPublisher;
+import healthmonitor.publisher.VitalsPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,7 +21,14 @@ public class IntegrationServiceImpl implements IntegrationService {
 
     private final ObjectMapper objectMapper;
     private static final int BATCH_SIZE = 2000;
-    private final RabbitTemplate rabbitTemplate;
+    private final BatchPublisher batchPublisher;
+    private final VitalsPublisher vitalsPublisher;
+
+    @Override
+    public void receiveVitals(VitalSignsDto dto) {
+        log.info("Measurements received for patient: {}", dto.getPatientId());
+        vitalsPublisher.publicVitals(dto);
+    }
 
     @Override
     public void processBatchMeasurements(MultipartFile file) {
@@ -41,14 +48,14 @@ public class IntegrationServiceImpl implements IntegrationService {
                 batch.add(dto);
 
                 if (batch.size() >= BATCH_SIZE) {
-                    rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY, new ArrayList<>(batch));
+                    batchPublisher.publishBatch(new ArrayList<>(batch));
                     totalProcessed += batch.size();
                     batch.clear();
                 }
             }
 
             if (!batch.isEmpty()) {
-                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY, new ArrayList<>(batch));
+                batchPublisher.publishBatch(batch);
                 totalProcessed += batch.size();
             }
 
