@@ -2,11 +2,11 @@ package healthmonitor.auth.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import healthmonitor.auth.config.RabbitMQConfig;
 import healthmonitor.auth.exception.AuthException;
 import healthmonitor.auth.exception.ErrorCode;
-import healthmonitor.auth.model.dto.TokenResponseDto;
 import healthmonitor.auth.model.UserRegisteredEvent;
+import healthmonitor.auth.model.dto.TokenResponseDto;
+import healthmonitor.auth.publisher.RegistrationPublisher;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,6 @@ import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -45,9 +44,9 @@ public class KeycloakUserService {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final RabbitTemplate rabbitTemplate;
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final RegistrationPublisher registrationPublisher;
 
     private final String PUBLIC_CLIENT_ID = "health-api";
 
@@ -183,7 +182,7 @@ public class KeycloakUserService {
                     keycloakUserId, user.getEmail(), user.getFirstName(), user.getLastName()
             );
 
-            rabbitTemplate.convertAndSend(RabbitMQConfig.AUTH_EXCHANGE, "user.registered." + role, event);
+            registrationPublisher.publishUserRegistration(role, event);
         } else {
             log.error("Error while creating user in Keycloak: {}", response.getStatusInfo().getReasonPhrase());
             throw new AuthException(ErrorCode.INTERVAL_SERVER_ERROR);
