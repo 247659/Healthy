@@ -1,12 +1,13 @@
 package healthmonitor.client;
 
 import healthmonitor.payload.MedicalStaffClientResponse;
-import jakarta.ws.rs.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,11 +29,11 @@ public class MedicalStaffClient {
                 .retrieve()
                 .onStatus(
                         HttpStatusCode::is4xxClientError,
-                        response -> Mono.error(new NotFoundException("Medical staff not found"))
+                        response -> Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Visit not found"))
                 )
                 .onStatus(
                         HttpStatusCode::is5xxServerError,
-                        response -> Mono.error(new IllegalStateException("Medical staff service is unavailable"))
+                        response -> Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Visit service is unavailable"))
                 )
                 .bodyToMono(MedicalStaffClientResponse.class)
                 .timeout(Duration.ofSeconds(10));
