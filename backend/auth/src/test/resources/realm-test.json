@@ -1,0 +1,16 @@
+{
+  "realm": "test-realm",
+  "enabled": true,
+  "verifyEmail": false,
+  "registrationAllowed": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "auth-service-backend",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "Q4T6eRN5lB520VuELv77mJW8BBZbwKVz",
+      "directAccessGrantsEnabled": true
+    }
+  ]
+}
