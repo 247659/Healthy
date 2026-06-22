@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Polyline, Circle, Line, Defs, LinearGradient, Stop, Polygon } from 'react-native-svg';
 
+// Importujemy naszego nowego klienta API
+import { vitalsClient } from '../api/vitalsClient';
+
 const screenWidth = Dimensions.get("window").width;
 
 // --- IKONY ---
@@ -105,7 +108,9 @@ const CustomLineChart = ({ data, color, unit }: { data: number[], color: string,
 
 export const VitalsHistoryScreen = ({ route, navigation }: any) => {
     const insets = useSafeAreaInsets();
-    const { patientData, token } = route.params || {};
+
+    // Usunięto token - już go nie pobieramy z propsów
+    const { patientData } = route.params || {};
 
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -116,26 +121,24 @@ export const VitalsHistoryScreen = ({ route, navigation }: any) => {
 
     useEffect(() => {
         const fetchHistoryAndAlerts = async () => {
-            if (!patientData?.id || !token) { setIsLoading(false); return; }
+            if (!patientData?.id) {
+                setIsLoading(false);
+                return;
+            }
+
             try {
-                // Równoległe pobieranie historii wykresów i powiadomień
-                const [vitalsRes, alertsRes] = await Promise.all([
-                    fetch(`http://10.0.2.2:8080/api/v1/vital-signs/patient/${patientData.id}?limit=100`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch(`http://10.0.2.2:8080/api/v1/notifications/${patientData.id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                // Równoległe pobieranie historii wykresów i powiadomień przez axiosa
+                const [vitalsData, alertsData] = await Promise.all([
+                    vitalsClient.getVitalsHistory(patientData.id, 100),
+                    vitalsClient.getAlerts(patientData.id)
                 ]);
 
                 // Obsługa wykresów
-                if (vitalsRes.ok) {
-                    const data = await vitalsRes.json();
-                    const list = Array.isArray(data) ? data : (data.history || []);
-                    setHistory(list.slice(-100));
-                }
+                const list = Array.isArray(vitalsData) ? vitalsData : (vitalsData.history || []);
+                setHistory(list.slice(-100));
 
                 // Obsługa alertów
-                if (alertsRes.ok) {
-                    const dataAlerts = await alertsRes.json();
-                    setAlerts(Array.isArray(dataAlerts) ? dataAlerts : []);
-                }
+                setAlerts(Array.isArray(alertsData) ? alertsData : []);
 
             } catch (err) {
                 console.error("Błąd pobierania danych na ekranie historii:", err);
@@ -145,7 +148,7 @@ export const VitalsHistoryScreen = ({ route, navigation }: any) => {
         };
 
         fetchHistoryAndAlerts();
-    }, [patientData, token]);
+    }, [patientData?.id]);
 
     const getStats = (key: string, nested?: string) => {
         const values = history.map(item => nested ? item.measurements?.[key]?.[nested] : item.measurements?.[key]).filter(v => typeof v === 'number');
@@ -253,14 +256,13 @@ const styles = StyleSheet.create({
     appBarTitle: { marginLeft: 16, fontSize: 20, fontWeight: '700', color: '#1F2937' },
     scrollContent: { padding: 20, paddingBottom: 60 },
 
-    // --- STYLE ALERTA AKORDEON ---
     alertAccordion: {
         backgroundColor: '#FEF2F2',
         borderRadius: 16,
         marginBottom: 20,
         borderWidth: 1,
         borderColor: '#FECACA',
-        overflow: 'hidden' // Zabezpiecza rogi przy zwijaniu
+        overflow: 'hidden'
     },
     alertAccordionHeader: {
         flexDirection: 'row',

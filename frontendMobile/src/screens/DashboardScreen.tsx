@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal, Alert } from 'react-native';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 import notifee, { AndroidImportance } from '@notifee/react-native';
+
+// Importujemy nasz klient API
+import { dashboardClient } from '../api/dashboardClient';
 
 // --- IKONY ---
 const UserIcon = ({ color = "#10B981", size = 24 }) => (
@@ -38,7 +41,8 @@ const XIcon = ({ color = "#9ca3af", size = 24 }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><Line x1="18" y1="6" x2="6" y2="18" /><Line x1="6" y1="6" x2="18" y2="18" /></Svg>
 );
 
-export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHistory, onNavigateToProfileEdit }: any) => {
+// Usunięto 'token' z propsów, bo już go nie potrzebujemy ręcznie przekazywać
+export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, onNavigateToProfileEdit }: any) => {
     const firstName = patientData?.firstName || 'Pacjencie';
 
     const [latestVitals, setLatestVitals] = useState<any>(null);
@@ -51,7 +55,7 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
 
     // --- ALERTY ---
     const [alerts, setAlerts] = useState<any[]>([]);
-    const [isAlertVisible, setIsAlertVisible] = useState<boolean>(true); // Pokazuje/ukrywa UI alertu
+    const [isAlertVisible, setIsAlertVisible] = useState<boolean>(true);
     const lastAlertId = useRef<string | null>(null);
     const isFirstLoad = useRef<boolean>(true);
 
@@ -81,17 +85,14 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
     };
 
     const fetchVitals = async () => {
-        if (!patientData?.id || !token) return;
+        if (!patientData?.id) return;
         try {
             const end = new Date();
             const start = new Date();
             start.setDate(end.getDate() - 2);
 
-            const response = await fetch(`http://10.0.2.2:8080/api/v1/vital-signs/patient/${patientData.id}?from=${start.toISOString()}&to=${end.toISOString()}`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            if (!response.ok) return;
-            const data = await response.json();
+            // Wywołujemy klienta bez podawania tokena
+            const data = await dashboardClient.getVitals(patientData.id, start.toISOString(), end.toISOString());
             const historyData = Array.isArray(data) ? data : (data.history || []);
 
             if (historyData.length > 0) {
@@ -106,13 +107,11 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
     };
 
     const fetchDoctors = async () => {
-        if (!patientData?.id || !token) return;
+        if (!patientData?.id) return;
         setIsLoadingDoctors(true);
         try {
-            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/patients/${patientData.id}`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            const data = await response.json();
+            // Wywołujemy klienta bez podawania tokena
+            const data = await dashboardClient.getAssignedDoctors(patientData.id);
             setDoctors(Array.isArray(data) ? data : []);
         } catch (error) {
             setDoctors([]);
@@ -122,14 +121,10 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
     };
 
     const fetchAlerts = async () => {
-        if (!patientData?.id || !token) return;
+        if (!patientData?.id) return;
         try {
-            const response = await fetch(`http://10.0.2.2:8080/api/v1/notifications/${patientData.id}`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            if (!response.ok) return;
-
-            const data = await response.json();
+            // Wywołujemy klienta bez podawania tokena
+            const data = await dashboardClient.getAlerts(patientData.id);
             const alertsArray = Array.isArray(data) ? data : [];
             setAlerts(alertsArray);
 
@@ -142,7 +137,6 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                     if (!isFirstLoad.current) {
                         const alertMessage = latestAlert.message || "Wykryto nieprawidłowe parametry!";
 
-                        // Pokazujemy alert i go otwieramy
                         setIsAlertVisible(true);
                         displayNotification(alertMessage);
                     }
@@ -159,11 +153,8 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         setIsModalVisible(true);
         setIsLoadingAllDoctors(true);
         try {
-            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/essential`, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            if (!response.ok) throw new Error();
-            const data = await response.json();
+            // Wywołujemy klienta bez podawania tokena
+            const data = await dashboardClient.getAllDoctors();
             setAllDoctors(data);
         } catch (error) {
             Alert.alert("Błąd", "Nie udało się załadować listy lekarzy.");
@@ -174,10 +165,8 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
 
     const handleAssignDoctor = async (doctorId: string) => {
         try {
-            await fetch(`http://10.0.2.2:8080/api/v1/staff/${doctorId}/assign/${patientData.id}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
+            // Wywołujemy klienta bez podawania tokena
+            await dashboardClient.assignDoctor(doctorId, patientData.id);
             Alert.alert("Sukces", "Lekarz został przypisany!");
             setIsModalVisible(false);
             fetchDoctors();
@@ -188,11 +177,8 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
 
     const handleUnassignDoctor = async (doctorId: string) => {
         try {
-            const response = await fetch(`http://10.0.2.2:8080/api/v1/staff/${doctorId}/unassign/${patientData.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            if (!response.ok) throw new Error();
+            // Wywołujemy klienta bez podawania tokena
+            await dashboardClient.unassignDoctor(doctorId, patientData.id);
             Alert.alert("Sukces", "Lekarz został odpięty.");
             fetchDoctors();
         } catch (error) {
@@ -211,7 +197,8 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
         }, 5000);
 
         return () => clearInterval(intervalId);
-    }, [patientData?.id, token]);
+        // Z dependencies usunięto token
+    }, [patientData?.id]);
 
     const availableDoctors = allDoctors.filter(doc => !doctors.find(d => d.id === doc.id));
 
@@ -242,7 +229,6 @@ export const DashboardScreen = ({ patientData, token, onLogout, onNavigateToHist
                             </TouchableOpacity>
                         </View>
 
-                        {/* Wyświetlamy tylko 1 najnowszy alert, aby zaoszczędzić miejsce */}
                         {alerts.slice(0, 1).map((alert, index) => {
                             const dateStr = alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Teraz';
                             return (
@@ -400,7 +386,6 @@ const styles = StyleSheet.create({
     subtitle: { fontSize: 15, color: '#6B7280', marginTop: 4 },
     logoutButton: { padding: 10, backgroundColor: '#FEE2E2', borderRadius: 12 },
 
-    // --- NOWE STYLE DLA ALERTA ---
     alertBanner: {
         backgroundColor: '#FEF2F2',
         borderRadius: 16,

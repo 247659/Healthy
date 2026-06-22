@@ -14,6 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DatePicker from 'react-native-date-picker';
 import Svg, { Path } from 'react-native-svg';
 
+// Importujemy naszego klienta API
+import { patientClient } from '../api/patientClient';
+
 // --- IKONA POWROTU ---
 const BackIcon = ({ color = "#1F2937", size = 26 }) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -24,8 +27,8 @@ const BackIcon = ({ color = "#1F2937", size = 26 }) => (
 export const ProfileEditScreen = ({ route, navigation }: any) => {
     const insets = useSafeAreaInsets();
 
-    // Odbieramy dane i token, które przekażemy w nawigacji z poziomu App.tsx
-    const { patientData, token } = route.params || {};
+    // Usunięto token - apiClient sam zarządza nagłówkami
+    const { patientData } = route.params || {};
 
     // Rozbicie adresu na ulicę, kod i miasto dla formularza
     const addressParts = patientData?.address ? patientData.address.split(',') : ['', ''];
@@ -95,27 +98,16 @@ export const ProfileEditScreen = ({ route, navigation }: any) => {
             // Łączenie 3 pól w jeden pełny adres przed wysłaniem
             const fullAddress = `${formData.street.trim()}, ${formData.postalCode.trim()} ${formData.city.trim()}`;
 
-            const response = await fetch(`http://10.0.2.2:8080/api/v1/patients/update/${patientData.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    email: formData.email,
-                    pesel: formData.pesel,
-                    phoneNumber: formData.phoneNumber.replace(/[\s-]/g, ''),
-                    dateOfBirth: formData.dateOfBirth,
-                    address: fullAddress // <--- Połączony adres
-                }),
+            // Korzystamy z nowo utworzonego klienta omijając surowy 'fetch'
+            await patientClient.updatePatient(patientData.id, {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                pesel: formData.pesel,
+                phoneNumber: formData.phoneNumber.replace(/[\s-]/g, ''),
+                dateOfBirth: formData.dateOfBirth,
+                address: fullAddress
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.message || 'Nie udało się zaktualizować danych.');
-            }
 
             setSuccessMessage('Profil został pomyślnie zaktualizowany.');
 
@@ -125,7 +117,8 @@ export const ProfileEditScreen = ({ route, navigation }: any) => {
             }, 1500);
 
         } catch (error: any) {
-            setErrorMessage(error.message);
+            // Obsługa błędu formatu axiosa
+            setErrorMessage(error.response?.data?.message || error.message || 'Nie udało się zaktualizować danych.');
         } finally {
             setIsLoading(false);
         }
