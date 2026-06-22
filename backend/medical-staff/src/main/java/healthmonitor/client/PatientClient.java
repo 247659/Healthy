@@ -1,12 +1,14 @@
 package healthmonitor.client;
 
 import jakarta.ws.rs.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Component
 public class PatientClient {
     private final WebClient webClient;
@@ -24,11 +26,14 @@ public class PatientClient {
                         HttpStatusCode::is4xxClientError,
                         response -> Mono.error(new NotFoundException("Patient not found"))
                 )
-                .onStatus(
-                        HttpStatusCode::is5xxServerError,
-                        response -> Mono.error(new IllegalStateException("Patient service is unavailable"))
-                )
                 .bodyToMono(PatientClientResponse.class)
+                .onErrorResume(e -> {
+                    if (e instanceof NotFoundException) {
+                        return Mono.error(e);
+                    }
+                    log.error("Failed to fetch patient after retries: {}", id, e);
+                    return Mono.just(PatientClientResponse.unfetched(id));
+                })
                 .block();
     }
 }
