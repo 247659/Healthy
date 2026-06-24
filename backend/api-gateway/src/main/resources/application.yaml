@@ -1,6 +1,13 @@
 server:
   port: 8080
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      medicalStaffService:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000ms
+        permittedNumberOfCallsInHalfOpenState: 3
 spring:
   application:
     name: api-gateway
@@ -33,6 +40,11 @@ spring:
               uri: lb://medical-staff-service
               predicates:
                 - Path=/api/v1/staff/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: medicalStaffService
+                    fallbackUri: forward:/fallback/medical-staff
             - id: vital-signs-service-route
               uri: lb://vital-signs-service
               predicates:
