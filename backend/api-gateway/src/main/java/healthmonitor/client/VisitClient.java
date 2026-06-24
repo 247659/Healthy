@@ -9,7 +9,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.util.UUID;
 
 @Component
@@ -29,11 +28,7 @@ public class VisitClient {
                         HttpStatusCode::is4xxClientError,
                         response -> Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Visit not found"))
                 )
-                .onStatus(
-                        HttpStatusCode::is5xxServerError,
-                        response -> Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Visit service is unavailable"))
-                )
                 .bodyToMono(VisitClientResponse.class)
-                .timeout(Duration.ofSeconds(10));
+                .onErrorResume(e -> Mono.just(VisitClientResponse.unfetched(id)));
     }
 }

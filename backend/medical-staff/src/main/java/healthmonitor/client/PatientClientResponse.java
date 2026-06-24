@@ -9,4 +9,13 @@ public record PatientClientResponse(
         LocalDate dateOfBirth,
         String phoneNumber
 ) {
+    public static PatientClientResponse unfetched(String id) {
+        return new PatientClientResponse(
+                id,
+                "Unfetched",
+                "Patient",
+                LocalDate.now(),
+                "phoneNumber"
+        );
+    }
 }

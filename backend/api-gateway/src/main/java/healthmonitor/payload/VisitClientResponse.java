@@ -11,4 +11,15 @@ public record VisitClientResponse(
         Integer durationMinutes,
         String note
 ) {
+
+    public static VisitClientResponse unfetched(UUID id) {
+        return new VisitClientResponse(
+                id,
+                "medicalStaffId",
+                "PatientId",
+                LocalDateTime.now(),
+                0,
+                ""
+        );
+    }
 }

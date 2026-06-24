@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.List;
@@ -29,15 +30,10 @@ public class MedicalStaffClient {
                 .retrieve()
                 .onStatus(
                         HttpStatusCode::is4xxClientError,
-                        response -> Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Visit not found"))
-                )
-                .onStatus(
-                        HttpStatusCode::is5xxServerError,
-                        response -> Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Visit service is unavailable"))
+                        response -> Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Medical staff not found"))
                 )
                 .bodyToMono(MedicalStaffClientResponse.class)
-                .timeout(Duration.ofSeconds(10));
-    }
+                .onErrorResume(e -> Mono.just(MedicalStaffClientResponse.unfetched(id)));    }
 
     public Flux<String> getAssignedPatientIds(String id) {
         return webClient.get()
@@ -45,7 +41,6 @@ public class MedicalStaffClient {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<String>>() {})
                 .flatMapMany(Flux::fromIterable)
-                .timeout(Duration.ofSeconds(10))
                 .onErrorResume(e -> Flux.empty());
     }
 }
