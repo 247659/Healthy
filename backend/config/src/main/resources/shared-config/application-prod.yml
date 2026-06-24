@@ -33,3 +33,10 @@ logging:
   pattern:
     level: "%5p"
     correlation: "[%X{traceId:-}] [%X{spanId:-}]"
+
+  management:
+    endpoints:
+      web.exposure:
+        include: health, info, liveness, readiness
+      health:
+        show-details: always

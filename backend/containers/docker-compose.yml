@@ -57,8 +57,7 @@ services:
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: password
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+      KC_HOSTNAME_STRICT: false
       KC_HTTP_PORT: 9090
       KC_HTTP_ENABLED: true
       KC_HEALTH_ENABLED: true
@@ -73,7 +72,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { int code = ((java.net.HttpURLConnection)java.net.URI.create(args[0]).toURL().openConnection()).getResponseCode(); if(code != 200) { System.err.println(\"HTTP Error: \" + code); System.exit(1); } } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/ready']
-      interval: 15s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 30s
@@ -113,7 +112,7 @@ services:
       - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
     networks:
@@ -168,6 +167,14 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -187,6 +194,14 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8087/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -206,6 +221,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8088/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -225,6 +246,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8082/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -246,6 +273,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8084/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -265,6 +298,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8083/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -284,6 +323,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8085/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -303,6 +348,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8089/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     environment:
       - SPRING_PROFILES_ACTIVE=prod
 
@@ -317,7 +368,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 20s
     networks:
       - backend
 
@@ -377,6 +428,11 @@ services:
         condition: service_healthy
       message_broker:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health').read())" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     environment:
       - INFLUX_URL=http://vital_signs_db:8086
       - INFLUX_TOKEN=super-secret-auth-token-123

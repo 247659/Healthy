@@ -14,6 +14,25 @@ from anomaly_detector import VitalsAnomalyDetector
 from ai_trainer import AITrainer
 from vitals_schema import VitalsPayload
 from data_interpolator import payload_to_reading, validate_reading
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status": "UP"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+def run_health_server():
+    server = HTTPServer(('0.0.0.0', 8000), HealthCheckHandler)
+    server.serve_forever()
+
+threading.Thread(target=run_health_server, daemon=True).start()
 
 trace_id_var = ContextVar("trace_id", default="")
 span_id_var  = ContextVar("span_id",  default="")
