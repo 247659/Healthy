@@ -14,6 +14,7 @@ import healthmonitor.vitals.mapper.VitalThresholdMapper;
 import healthmonitor.vitals.model.VitalThreshold;
 import healthmonitor.vitals.repository.VitalThresholdRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -40,7 +41,7 @@ public class VitalsServiceImpl implements VitalsService {
         this.vitalThresholdMapper = vitalThresholdMapper;
         this.vitalThresholdRepository = vitalThresholdRepository;
         this.influxDBClient = influxDBClient;
-        this.writeApi = influxDBClient.getWriteApi();
+        this.writeApi = influxDBClient.makeWriteApi();
     }
 
     @Value("${influxdb.bucket}")
@@ -111,18 +112,26 @@ public class VitalsServiceImpl implements VitalsService {
         try {
             Point point = saveToDatabase(dto);
             influxDBClient.getWriteApiBlocking().writePoint(bucket, organization, point);
-
-        } catch (Exception e) {
+            log.info("Vital record was created for patient: {}", dto.getPatientId());
+        } catch (IllegalArgumentException e) {
             log.error("Error during processing vitals: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Invalid vitals data");
         }
     }
 
     @Override
     @RabbitListener(queues = RabbitMQConfig.THRESHOLD_QUEUE)
     public void saveThreshold(VitalThresholdEvent event) {
-        VitalThreshold vitalThreshold = new VitalThreshold();
-        vitalThreshold.setPatientId(event.patientId());
-        vitalThresholdRepository.save(vitalThreshold);
+        log.info("Processing and saving threshold for patient: {}", event.patientId());
+        try {
+            VitalThreshold vitalThreshold = new VitalThreshold();
+            vitalThreshold.setPatientId(event.patientId());
+            vitalThresholdRepository.save(vitalThreshold);
+            log.info("Threshold record was created for patient: {}", event.patientId());
+        } catch (IllegalArgumentException e) {
+            log.error("Error during processing threshold: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Invalid threshold data");
+        }
     }
 
     @Override
@@ -149,10 +158,10 @@ public class VitalsServiceImpl implements VitalsService {
                 Point point = saveToDatabase(dto);
                 writeApi.writePoint(bucket, organization, point);
             }
-
             log.info("Paczka została przekazana do asynchronicznego zapisu InfluxDB.");
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             log.error("Błąd podczas zapisywania paczki batch do InfluxDB: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Invalid batch data");
         }
     }
 

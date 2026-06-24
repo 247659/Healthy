@@ -10,6 +10,7 @@ import {
     Platform,
 } from 'react-native';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Dodany import
 import { authService } from '../api/authClient.ts';
 import { LoginRequest, Token } from '../types/auth.ts';
 import axios from 'axios';
@@ -49,27 +50,35 @@ export const LoginScreen = ({ onNavigateToRegister, onLoginSuccess }: LoginScree
         }
         setIsLoading(true);
         try {
-          const loginData: LoginRequest = {
-            email: email,
-            password: password,
-          };
+            const loginData: LoginRequest = {
+                email: email,
+                password: password,
+            };
 
-          const response = await authService.login(loginData);
-          onLoginSuccess(response);
+            // Wysyłamy żądanie do API
+            const response = await authService.login(loginData);
+
+            // ZAPIS DO PAMIĘCI URZĄDZENIA - To jest brakujący krok!
+            // Teraz interceptor z apiClient będzie miał skąd pobrać token.
+            await AsyncStorage.setItem('accessToken', response.accessToken);
+            await AsyncStorage.setItem('refreshToken', response.refreshToken);
+
+            // Przekazujemy dalej
+            onLoginSuccess(response);
 
         } catch (error: any) {
-          if (axios.isAxiosError(error)) {
-            if (error.response?.status === 401) {
-              setErrorMessage("Nieprawidłowy email lub hasło");
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 401) {
+                    setErrorMessage("Nieprawidłowy email lub hasło");
+                } else {
+                    setErrorMessage("Błąd podczas logowania. Spróbuj ponownie później.");
+                }
             } else {
-              setErrorMessage("Błąd podczas logowania. Spróbuj ponownie później.");
+                setErrorMessage('Brak połączenia z serwerem.');
             }
-          } else {
-            setErrorMessage('Brak połączenia z serwerem.');
-          }
 
         } finally {
-          setIsLoading(false);
+            setIsLoading(false);
         }
     };
 
@@ -159,15 +168,13 @@ const styles = StyleSheet.create({
     errorText: { color: '#EF4444', fontSize: 14, textAlign: 'center', fontWeight: '500' },
 
     inputContainer: { gap: 16 },
-    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 }, // Dodany styl etykiety
+    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 },
     input: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, fontSize: 16, color: '#1F2937' },
 
-    // Style dla hasła z ikoną
     passwordContainer: { position: 'relative', justifyContent: 'center' },
     passwordInput: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, paddingRight: 50, fontSize: 16, color: '#1F2937' },
     eyeIcon: { position: 'absolute', right: 18, height: '100%', justifyContent: 'center', alignItems: 'center' },
 
-    // Reszta styli
     forgotPasswordButton: { alignSelf: 'flex-end', marginTop: 12, marginBottom: 24 },
     forgotPasswordText: { color: '#10B981', fontSize: 14, fontWeight: '600' },
     primaryButton: { backgroundColor: '#10B981', padding: 18, borderRadius: 16, alignItems: 'center' },

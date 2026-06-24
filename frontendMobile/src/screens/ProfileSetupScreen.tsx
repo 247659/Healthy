@@ -13,7 +13,8 @@ import {
 import DatePicker from 'react-native-date-picker';
 import Svg, { Path, Polyline, Line } from 'react-native-svg';
 
-const API_URL = 'http://10.0.2.2:8088'; // Zmień na 8088 jeśli tego używasz
+// Importujemy naszego klienta API
+import { patientClient } from '../api/patientClient';
 
 // --- IKONA WYLOGOWANIA Z DASHBOARDU ---
 const LogoutIcon = ({ color = "#EF4444", size = 24 }) => (
@@ -93,21 +94,14 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onLogout }: 
         try {
             const fullAddress = `${formData.street.trim()}, ${formData.postalCode.trim()} ${formData.city.trim()}`;
 
-            const response = await fetch(`${API_URL}/api/v1/patients/update/${patientData.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...patientData,
-                    pesel: formData.pesel,
-                    phoneNumber: formData.phoneNumber.replace(/[\s-]/g, ''),
-                    dateOfBirth: formData.dateOfBirth,
-                    address: fullAddress
-                }),
+            // Korzystamy z globalnego klienta z interceptorami
+            await patientClient.updatePatient(patientData.id, {
+                ...patientData,
+                pesel: formData.pesel,
+                phoneNumber: formData.phoneNumber.replace(/[\s-]/g, ''),
+                dateOfBirth: formData.dateOfBirth,
+                address: fullAddress
             });
-
-            if (!response.ok) throw new Error('Nie udało się zapisać danych.');
 
             setSuccessMessage('Profil został pomyślnie zaktualizowany.');
 
@@ -117,7 +111,8 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onLogout }: 
             }, 2000);
 
         } catch (error: any) {
-            setErrorMessage(error.message);
+            // Obsługa błędu formatu axiosa
+            setErrorMessage(error.response?.data?.message || error.message || 'Nie udało się zapisać danych.');
         } finally {
             setIsLoading(false);
         }
@@ -178,7 +173,10 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onLogout }: 
                         onConfirm={(selectedDate) => {
                             setOpenDateModal(false);
                             setDate(selectedDate);
-                            const formattedDate = selectedDate.toISOString().split('T')[0];
+                            // Pobieramy YYYY-MM-DD unikając stref czasowych, bazując na lokalnym wyborze
+                            const offset = selectedDate.getTimezoneOffset();
+                            const adjustedDate = new Date(selectedDate.getTime() - (offset * 60 * 1000));
+                            const formattedDate = adjustedDate.toISOString().split('T')[0];
                             setFormData({...formData, dateOfBirth: formattedDate});
                         }}
                         onCancel={() => {
@@ -303,7 +301,6 @@ const styles = StyleSheet.create({
 
     subtitle: { fontSize: 16, color: '#6B7280', marginBottom: 32, textAlign: 'center' },
 
-    // NOWE STYLE DLA BANERÓW
     errorContainer: {
         backgroundColor: '#FEE2E2',
         padding: 12,

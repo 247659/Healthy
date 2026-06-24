@@ -61,20 +61,21 @@ services:
       KC_HTTP_PORT: 9090
       KC_HTTP_ENABLED: true
       KC_HEALTH_ENABLED: true
-    entrypoint: ["/bin/bash", "-c", "/opt/keycloak/bin/kc.sh build && /opt/keycloak/bin/kc.sh start --import-realm"]
+    command: start-dev --import-realm
     ports:
       - "9090:9090"
+      - "9000:9000"
     volumes:
       - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/live HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK' || exit 1"]
+      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { int code = ((java.net.HttpURLConnection)java.net.URI.create(args[0]).toURL().openConnection()).getResponseCode(); if(code != 200) { System.err.println(\"HTTP Error: \" + code); System.exit(1); } } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/ready']
       interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 30s
     networks:
       - backend
 
@@ -114,7 +115,6 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 60s
     networks:
       - backend
 
@@ -197,7 +197,7 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8087/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8087/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -222,7 +222,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8088/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8088/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -247,7 +247,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8082/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8082/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -274,7 +274,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8084/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8084/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -299,7 +299,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8083/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8083/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -324,7 +324,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8085/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8085/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -349,7 +349,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8089/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8089/api/v1/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -364,8 +364,8 @@ services:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     healthcheck:
-      test: ["CMD", "/usr/bin/loki", "-health"]
-      interval: 10s
+      test: ["CMD", "loki", "-health"]
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 20s
@@ -449,6 +449,9 @@ services:
     profiles: ["tools"]
     networks:
       - backend
+    depends_on:
+      vital_signs_db:
+        condition: service_healthy
     environment:
       - INFLUX_URL=http://vital_signs_db:8086
       - INFLUX_TOKEN=super-secret-auth-token-123
@@ -463,14 +466,6 @@ services:
     profiles: ["simulation"]
     networks:
       - backend
-    depends_on:
-      integration:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/health').read())" ]
-      interval: 15s
-      timeout: 5s
-      retries: 3
     environment:
       - API_URL=http://integration:8083/api/v1/integration
 

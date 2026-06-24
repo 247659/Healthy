@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type {Patient} from "../types/patient.ts";
-import {vitalService} from "../api/vitalClient.ts";
+import type { Patient } from "../types/patient.ts";
+import { vitalService } from "../api/vitalClient.ts";
+import { api } from "../api/api.ts"; // Zaimportowano axios api do pobrania alertów
 
 interface VitalSigns {
     patientId?: string;
@@ -25,10 +26,10 @@ const PatientDetails = () => {
     const patient = location.state?.patient as Patient | undefined;
     const token = localStorage.getItem('access_token');
 
-    // Dwa osobne stany: jeden dla historii (wykresy), drugi dla najnowszego pomiaru (live)
     const [historyVitals, setHistoryVitals] = useState<VitalSigns[]>([]);
     const [latestVitals, setLatestVitals] = useState<VitalSigns | null>(null);
     const [isVitalsLoading, setIsVitalsLoading] = useState(true);
+    const [alerts, setAlerts] = useState<any[]>([]);
 
     useEffect(() => {
         if (!patient || !token) {
@@ -36,44 +37,50 @@ const PatientDetails = () => {
             return;
         }
 
-        // 1. POBIERANIE HISTORII (tylko raz po wejściu na stronę)
-        const fetchHistory = async () => {
+        // 1. POBIERANIE HISTORII I ALERTÓW
+        const fetchHistoryAndAlerts = async () => {
             setIsVitalsLoading(true);
             try {
-                const res = await vitalService.getHistory(patient.id)
-                const data = Array.isArray(res) ? res : [];
-                setHistoryVitals(data);
+                // Dodano pobieranie alertów z użyciem axiosa/Twojego klienta
+                const [historyRes, alertsRes] = await Promise.all([
+                    vitalService.getHistory(patient.id),
+                    api.get(`/notifications/${patient.id}`) // Endpoint z powiadomieniami
+                ]);
 
-                // Od razu ustawiamy najnowszy z historii jako "live", żeby nie czekać 5 sekund na pierwszy render
+                // Obsługa historii
+                const data = Array.isArray(historyRes) ? historyRes : [];
+                setHistoryVitals(data);
                 if (data.length > 0) {
                     setLatestVitals(data[0]);
                 }
+
+                // Obsługa alertów
+                setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : []);
+
             } catch (err) {
-                console.error("Błąd pobierania historii pomiarów:", err);
+                console.error("Błąd pobierania danych:", err);
             } finally {
                 setIsVitalsLoading(false);
             }
         };
 
-        // 2. POBIERANIE DANYCH LIVE (co 5 sekund, pytamy tylko o ostatnią minutę, żeby nie obciążać bazy)
+        // 2. POBIERANIE DANYCH LIVE
         const fetchLiveVitals = async () => {
             try {
-                // Obliczamy czas sprzed minuty (format ISO)
                 const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
-
-                const res = await vitalService.getHistoryByTime(patient.id, oneMinuteAgo)
-
+                const res = await vitalService.getHistoryByTime(patient.id, oneMinuteAgo);
                 const data = Array.isArray(res) ? res : [];
-
                 if (data.length > 0) {
-                    setLatestVitals(data[0]); // Zawsze bierzemy najświeższy z odpowiedzi
+                    setLatestVitals(data[0]);
                 }
             } catch (err) {
-                // Ciche zignorowanie błędu, by nie spamować konsoli w tle
+                // ignorowane w tle
             }
         };
 
-        fetchHistory();
+        // Wywołujemy pobieranie początkowe
+        fetchHistoryAndAlerts();
+
         const intervalId = setInterval(fetchLiveVitals, 5000);
 
         return () => {
@@ -83,7 +90,7 @@ const PatientDetails = () => {
 
     if (!patient) return null;
 
-    // --- OBLICZANIE STATYSTYK NA BAZIE HISTORII (Nie zmienia się co 5 sekund) ---
+    // --- STATYSTYKI ---
     const getStats = (selector: (v: VitalSigns) => number | undefined) => {
         const values = historyVitals.map(selector).filter(v => v !== undefined && v !== null) as number[];
         if (values.length === 0) return { min: '--', max: '--' };
@@ -96,7 +103,7 @@ const PatientDetails = () => {
     const spo2Stats = getStats(v => v.measurements?.spO2);
     const tempStats = getStats(v => v.measurements?.temperature);
 
-    // --- DANE DO WYKRESÓW (Nie zmieniają się co 5 sekund) ---
+    // --- DANE WYKRESÓW ---
     const chartData = useMemo(() => {
         return [...historyVitals].reverse().map(v => ({
             time: new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -112,6 +119,7 @@ const PatientDetails = () => {
         <div style={{ minHeight: '100vh', backgroundColor: '#f4f7f6', padding: '20px 5%', fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div style={{ maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
 
+                {/* Nagłówek powrotu */}
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px', gap: '20px' }}>
                     <button
                         onClick={() => navigate('/patients')}
@@ -128,6 +136,7 @@ const PatientDetails = () => {
                     </h2>
                 </div>
 
+                {/* Info i statystyki */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                     <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                         <h3 style={{ marginTop: 0, color: '#4a5568', fontSize: '16px', marginBottom: '20px', borderBottom: '1px solid #edf2f7', paddingBottom: '10px' }}>Informacje</h3>
@@ -162,6 +171,7 @@ const PatientDetails = () => {
                     </div>
                 </div>
 
+                {/* Parametry live */}
                 <h3 style={{ marginTop: '30px', color: '#2d3748', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     Bieżące parametry życiowe
                     <span style={{ fontSize: '11px', backgroundColor: '#fed7d7', color: '#c53030', padding: '3px 8px', borderRadius: '12px', fontWeight: 'bold' }}>LIVE (odświeżane co 5s)</span>
@@ -203,7 +213,21 @@ const PatientDetails = () => {
                     <p style={{ color: '#718096' }}>Brak zapisanych pomiarów dla tego pacjenta.</p>
                 )}
 
-                {/* WYKRESY ZWIĘKSZONE I W 1 KOLUMNIE */}
+                {/* Sekcja alertów */}
+                <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '20px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                    <h3 style={{ color: '#e53e3e', fontSize: '18px', marginBottom: '15px' }}>🚨 Historia alertów</h3>
+                    {alerts.length > 0 ? (
+                        alerts.map((alert, index) => (
+                            <div key={index} style={{ padding: '10px', backgroundColor: '#fff5f5', borderRadius: '8px', border: '1px solid #fed7d7', marginBottom: '8px' }}>
+                                <p style={{ margin: 0, fontSize: '14px', color: '#822727' }}>
+                                    <strong>{alert.timestamp ? new Date(alert.timestamp).toLocaleString() : 'Alert'}:</strong> {alert.message || 'Wykryto nieprawidłowość.'}
+                                </p>
+                            </div>
+                        ))
+                    ) : <p style={{ color: '#718096' }}>Brak alertów dla pacjenta.</p>}
+                </div>
+
+                {/* WYKRESY */}
                 <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                     <h3 style={{ marginTop: 0, color: '#2d3748', fontSize: '18px', marginBottom: '30px' }}>Historia wykresów (statyczna)</h3>
                     {historyVitals.length > 0 ? (

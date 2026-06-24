@@ -29,11 +29,13 @@ public class MedicalStaffClient {
                         HttpStatusCode::is4xxClientError,
                         response -> Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found"))
                 )
-                .onStatus(
-                        HttpStatusCode::is5xxServerError,
-                        response -> Mono.error(new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Medical staff service is unavailable"))
-                )
                 .bodyToMono(new ParameterizedTypeReference<List<String>>() {})
+                .onErrorResume(e -> {
+                    if (e instanceof ResponseStatusException) {
+                        return Mono.error(e);
+                    }
+                    return Mono.just(List.of());
+                })
                 .block();
     }
 }

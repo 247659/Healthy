@@ -17,7 +17,7 @@ public class AuthClient {
     private final WebClient webClient;
 
     public AuthClient(WebClient.Builder webClientBuilder,
-                         @Value("${auth-service.url}") String url) {
+                      @Value("${auth-service.url}") String url) {
         this.webClient = webClientBuilder.baseUrl(url).build();
     }
 
@@ -28,12 +28,19 @@ public class AuthClient {
                 .uri("/api/v1/auth/users/{id}/password", keycloakUserId)
                 .bodyValue(body)
                 .retrieve()
-                .onStatus(HttpStatusCode::isError, response -> {
-                    log.error("Keycloak odrzucił zmianę hasła dla usera: {}. Status: {}", keycloakUserId, response.statusCode());
-                    return Mono.error(new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Błąd autoryzacji"));
-                })
+                .onStatus(HttpStatusCode::is4xxClientError,
+                        response -> {
+                            log.error("Keycloak odrzucił zmianę hasła dla usera: {}. Status: {}", keycloakUserId, response.statusCode());
+                            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Błąd autoryzacji"));
+                        })
                 .toBodilessEntity()
                 .doOnError(error -> log.error("Błąd połączenia z Auth Service dla usera: {}", keycloakUserId))
+                .onErrorMap(e -> {
+                    if (e instanceof ResponseStatusException) {
+                        return e;
+                    }
+                    return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Auth service is unavailable");
+                })
                 .block();
 
         log.info("Zlecono zmianę hasła w auth-service dla ID: {}", keycloakUserId);

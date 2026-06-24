@@ -12,6 +12,15 @@ spring:
         webflux:
           default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: Retry
+              args:
+                retries: 5
+                methods: GET
+                series: SERVER_ERROR
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 1000ms
+                  factor: 2
           routes:
             - id: patient-service-route
               uri: lb://patient-service
@@ -41,6 +50,9 @@ spring:
               uri: lb://visit-service
               predicates:
                 - Path=/api/v1/visits/**
+          httpclient:
+            connect-timeout: 2000
+            response-timeout: 5s
   security:
     oauth2:
       resourceserver:
@@ -60,11 +72,5 @@ visit-service:
   url: http://localhost:8089
 
 eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://127.0.0.1:8761/eureka/
   instance:
-    prefer-ip-address: true
-    ip-address: 127.0.0.1
-    hostname: 127.0.0.1
     instance-id: ${spring.application.name}:${server.port}
