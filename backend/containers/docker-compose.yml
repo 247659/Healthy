@@ -231,12 +231,10 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
 
   medical-staff:
-    container_name: medical-staff-service
+    image: medical-staff-service:latest
     build: ../medical-staff
     networks:
       - backend
-    ports:
-      - "8082:8082"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -253,7 +251,11 @@ services:
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=medical-staff-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8082
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   vital-signs:
     container_name: vital-signs-service

@@ -7,6 +7,9 @@ spring:
   config:
     import: "optional:configserver:http://localhost:8888"
   cloud:
+    loadbalancer:
+      cache:
+        ttl: 5s
     gateway:
       server:
         webflux:
@@ -51,8 +54,8 @@ spring:
               predicates:
                 - Path=/api/v1/visits/**
           httpclient:
-            connect-timeout: 2000
-            response-timeout: 5s
+            connect-timeout: 5000
+            response-timeout: 30s
   security:
     oauth2:
       resourceserver:

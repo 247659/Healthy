@@ -1,4 +1,4 @@
-package healthmonitor;
+package healthmonitor.performance;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,17 +50,6 @@ public class MedicalStaffPerformanceTest {
                                 .method("GET"),
 
                         constantTimer(Duration.ofMillis(500)),
-
-                        httpSampler("Save New Staff", baseUrl)
-                                .method("POST")
-                                .body("""
-                                        {
-                                          "firstName": "Anna",
-                                          "lastName": "Nowak",
-                                          "specialization": "Kardiolog",
-                                          "email": "doctor${__RandomString(6,abcdef0123456789)}@test.com",
-                                          "phoneNumber": "987654321"
-                                        }"""),
 
                         httpSampler("Get Essential Staff", baseUrl + "/essential")
                                 .method("GET")
