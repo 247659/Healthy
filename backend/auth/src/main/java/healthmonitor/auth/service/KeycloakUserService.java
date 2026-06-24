@@ -100,7 +100,7 @@ public class KeycloakUserService {
     }
 
     public void logout(String refreshToken) {
-        keycloakClient.refreshToken(refreshToken);
+        keycloakClient.logout(refreshToken);
     }
 
     private void register(UserRepresentation user, String role) {

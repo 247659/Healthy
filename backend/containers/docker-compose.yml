@@ -61,16 +61,18 @@ services:
       KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
       KC_HTTP_PORT: 9090
       KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
     command: start-dev --import-realm
     ports:
       - "9090:9090"
+      - "9000:9000"
     volumes:
       - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9090/health/ready || exit 1"]
+      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { int code = ((java.net.HttpURLConnection)java.net.URI.create(args[0]).toURL().openConnection()).getResponseCode(); if(code != 200) { System.err.println(\"HTTP Error: \" + code); System.exit(1); } } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/ready']
       interval: 15s
       timeout: 5s
       retries: 5
@@ -311,11 +313,11 @@ services:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --tries=1 -O- http://127.0.0.1:3100/ready || exit 1"]
-      interval: 10s
+      test: ["CMD", "loki", "-health"]
+      interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 30s
     networks:
       - backend
 

@@ -11,8 +11,8 @@ public class RestClientConfig {
     @Bean
     public RestClient restClient() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(1000);
-        factory.setReadTimeout(1500);
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(10000);
 
         return RestClient.builder()
                 .requestFactory(factory)

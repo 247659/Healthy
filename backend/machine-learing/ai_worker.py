@@ -51,76 +51,80 @@ async def on_message(
     trainer:  AITrainer,
     channel:  aio_pika.abc.AbstractChannel,
 ) -> None:
-    async with message.process():
-        try:
-            headers    = message.headers or {}
-            traceparent = headers.get("traceparent") or headers.get("b3")
-            if traceparent:
-                if isinstance(traceparent, bytes):
-                    traceparent = traceparent.decode()
-                parts = traceparent.split("-")
-                trace_id_var.set(parts[1] if len(parts) >= 3 else traceparent)
-                span_id_var.set(parts[2] if len(parts) >= 3 else uuid.uuid4().hex[:16])
-            else:
-                trace_id_var.set(uuid.uuid4().hex)
-                span_id_var.set(uuid.uuid4().hex[:16])
+    try:
+        headers    = message.headers or {}
+        traceparent = headers.get("traceparent") or headers.get("b3")
+        if traceparent:
+            if isinstance(traceparent, bytes):
+                traceparent = traceparent.decode()
+            parts = traceparent.split("-")
+            trace_id_var.set(parts[1] if len(parts) >= 3 else traceparent)
+            span_id_var.set(parts[2] if len(parts) >= 3 else uuid.uuid4().hex[:16])
+        else:
+            trace_id_var.set(uuid.uuid4().hex)
+            span_id_var.set(uuid.uuid4().hex[:16])
 
-            body_dict = json.loads(message.body.decode())
-            payload   = VitalsPayload(**body_dict)
-            patient_id = payload.patientId
+        body_dict = json.loads(message.body.decode())
+        payload   = VitalsPayload(**body_dict)
+        patient_id = payload.patientId
 
-            reading = payload_to_reading(payload)
-            reading = validate_reading(reading)
-            if reading.rejected:
-                logger.warning(
-                    f"[!] Odrzucono artefakt dla {patient_id}: {reading.reject_reason}"
-                )
-                return
+        reading = payload_to_reading(payload)
+        reading = validate_reading(reading)
 
-            analysis   = detector.analyze_vitals(payload)
-            risk_score = analysis.get("risk_score", 0.0)
-            method     = analysis.get("method", "Unknown")
-            xai        = analysis.get("xai", {})
+        if reading.rejected:
+            logger.warning(
+                f"[!] Odrzucono artefakt dla {patient_id}: {reading.reject_reason}"
+            )
+            await message.ack()
+            return
 
+        analysis   = detector.analyze_vitals(payload)
+        risk_score = analysis.get("risk_score", 0.0)
+        method     = analysis.get("method", "Unknown")
+        xai        = analysis.get("xai", {})
+
+        logger.info(
+            f"[*] {patient_id} | HR={payload.heartRate} | "
+            f"risk={risk_score:.2f} | method={method} | "
+            f"severity={xai.get('severity', '?')}"
+        )
+
+        if risk_score > 0.6:
             logger.info(
-                f"[*] {patient_id} | HR={payload.heartRate} | "
-                f"risk={risk_score:.2f} | method={method} | "
-                f"severity={xai.get('severity', '?')}"
+                f"ALERT {patient_id}: {xai.get('headline', '')}"
+            )
+            alert_payload = {
+                "patientId":      patient_id,
+                "riskScore":      risk_score,
+                "severity":       xai.get("severity", "HIGH"),
+                "message":        xai.get("headline", "Wykryto anomalie!"),
+                "details":        xai.get("details", []),
+                "recommendation": xai.get("recommendation", ""),
+                "forecastNote":   xai.get("forecast_note"),
+                "method":         method,
+                "timestamp":      datetime.now().isoformat(),
+            }
+            notif_exchange = await channel.get_exchange("notifications.exchange")
+            await notif_exchange.publish(
+                aio_pika.Message(
+                    body=json.dumps(alert_payload).encode(),
+                    content_type="application/json",
+                ),
+                routing_key="notifications.incoming",
             )
 
-            if risk_score > 0.6:
-                logger.info(
-                    f"ALERT {patient_id}: {xai.get('headline', '')}"
-                )
-                alert_payload = {
-                    "patientId":      patient_id,
-                    "riskScore":      risk_score,
-                    "severity":       xai.get("severity", "HIGH"),
-                    "message":        xai.get("headline", "Wykryto anomalie!"),
-                    "details":        xai.get("details", []),
-                    "recommendation": xai.get("recommendation", ""),
-                    "forecastNote":   xai.get("forecast_note"),
-                    "method":         method,
-                    "timestamp":      datetime.now().isoformat(),
-                    # "rawValues":      analysis.get("xai", {}).get("raw_values", {}),
-                }
-                notif_exchange = await channel.get_exchange("notifications.exchange")
-                await notif_exchange.publish(
-                    aio_pika.Message(
-                        body=json.dumps(alert_payload).encode(),
-                        content_type="application/json",
-                    ),
-                    routing_key="notifications.incoming",
-                )
+        message_counters[patient_id] = message_counters.get(patient_id, 0) + 1
+        if not detector.has_model(patient_id) or message_counters[patient_id] % 50 == 0:
+            asyncio.create_task(
+                train_in_background(patient_id, trainer, detector)
+            )
 
-            message_counters[patient_id] = message_counters.get(patient_id, 0) + 1
-            if not detector.has_model(patient_id) or message_counters[patient_id] % 50 == 0:
-                asyncio.create_task(
-                    train_in_background(patient_id, trainer, detector)
-                )
+        await message.ack()
 
-        except Exception as e:
-            logger.error(f"Blad przetwarzania: {e}", exc_info=True)
+    except Exception as e:
+        logger.error(f"Blad przetwarzania: {e}", exc_info=True)
+        await message.reject(requeue=False)
+
 
 async def main() -> None:
     from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
@@ -144,12 +148,36 @@ async def main() -> None:
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=10)
 
+        # Ujednolicona nazwa DLX
+        dlx_name = "vitals.dlx"
+
+        dlx_exchange = await channel.declare_exchange(
+            dlx_name,
+            aio_pika.ExchangeType.DIRECT,
+            durable=True,
+        )
+
+        dlq_queue = await channel.declare_queue(
+            "vitals.ml.dlq",
+            durable=True
+        )
+
+        await dlq_queue.bind(dlx_exchange, routing_key="vitals.ml.dlq")
+
         exchange = await channel.declare_exchange(
             "iot.vitals.exchange",
             aio_pika.ExchangeType.TOPIC,
             durable=True,
         )
-        vitals_queue = await channel.declare_queue("vitals.ml.queue", durable=True)
+
+        vitals_queue = await channel.declare_queue(
+            "vitals.ml.queue",
+            durable=True,
+            arguments={
+                "x-dead-letter-exchange": dlx_name,
+                "x-dead-letter-routing-key": "vitals.ml.dlq"
+            }
+        )
         await vitals_queue.bind(exchange, routing_key="vitals.incoming")
 
         await channel.declare_exchange(
@@ -159,11 +187,11 @@ async def main() -> None:
         )
 
         logger.info("AI Worker nasluchuje na 'vitals.ml.queue'...")
+
         await vitals_queue.consume(
             partial(on_message, detector=detector, trainer=trainer, channel=channel)
         )
         await asyncio.Future()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

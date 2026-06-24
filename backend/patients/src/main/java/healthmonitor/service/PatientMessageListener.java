@@ -6,6 +6,7 @@ import healthmonitor.model.Patient;
 import healthmonitor.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,6 @@ public class PatientMessageListener {
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
     public void handlePatientRegistrationEvent(UserRegisteredEvent event) {
         log.info("Registration event received for email: {}", event.getEmail());
-
         try {
             Patient newPatient = new Patient();
             newPatient.setId(event.getKeycloakUserId());
@@ -29,15 +29,11 @@ public class PatientMessageListener {
             newPatient.setLastName(event.getLastName());
             newPatient.setEmail(event.getEmail());
             newPatient.setCreatedAt(LocalDateTime.now());
-
             patientRepository.save(newPatient);
             log.info("Patient record was created with external ID.: {}", event.getKeycloakUserId());
-
-        } catch (Exception e) {
-            log.error("Error creating patient profile: {}", e.getMessage());
-            // Here, in a real system, you can implement a Dead Letter Queue (DLQ)
-            // or send a compensation message to Keycloak to delete the account
-            // if the patient database has completely crashed.
+        } catch (IllegalArgumentException e) {
+            log.error("Nieprawidłowe dane pacjenta. Wysyłam do DLQ: {}", e.getMessage());
+            throw new AmqpRejectAndDontRequeueException("Błąd walidacji danych pacjenta", e);
         }
     }
 }
