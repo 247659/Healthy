@@ -135,7 +135,8 @@ services:
   auth:
     image: auth-service:latest
     build: ../auth
-    container_name: auth-service-perf
+    deploy:
+      replicas: 3
     networks:
       - backend
     depends_on:

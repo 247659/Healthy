@@ -15,8 +15,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,liveness,readiness,metrics,env
+        include: health,info,liveness,readiness,metrics,env,readiness,prometheus
   endpoint:
+    prometheus:
+      enabled: true
     metrics:
       enabled: true
     env:
