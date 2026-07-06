@@ -12,6 +12,17 @@ management:
   tracing:
     sampling:
       probability: 1.0
+  endpoints:
+    web:
+      exposure:
+        include: health,info,liveness,readiness,metrics,env,readiness,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+    env:
+      show-values: ALWAYS
 
   otlp:
     metrics:
@@ -33,10 +44,3 @@ logging:
   pattern:
     level: "%5p"
     correlation: "[%X{traceId:-}] [%X{spanId:-}]"
-
-  management:
-    endpoints:
-      web.exposure:
-        include: health, info, liveness, readiness
-      health:
-        show-details: always

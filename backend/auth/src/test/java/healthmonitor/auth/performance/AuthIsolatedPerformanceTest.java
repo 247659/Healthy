@@ -16,7 +16,7 @@ import static us.abstracta.jmeter.javadsl.JmeterDsl.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
-public class AuthPerformanceTest {
+public class AuthIsolatedPerformanceTest {
 
     @LocalServerPort
     private int port;
@@ -45,7 +45,6 @@ public class AuthPerformanceTest {
     @Test
     public void runPerformanceTest() throws IOException {
         String baseUrl = "http://localhost:" + port + "/api/v1/auth";
-        System.out.println("KEYCLOAK URL: " + keycloak.getAuthServerUrl());
 
         testPlan(
                 threadGroup(40, 1,
@@ -61,7 +60,7 @@ public class AuthPerformanceTest {
                                           "password": "Password123!"
                                         }""")
                 ),
-                htmlReporter("target/jmeter/reports/auth")
+                htmlReporter("target/jmeter/reports/auth/isolated")
         ).run();
     }
 }

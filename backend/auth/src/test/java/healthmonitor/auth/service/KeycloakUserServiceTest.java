@@ -1,7 +1,7 @@
 package healthmonitor.auth.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import healthmonitor.auth.Client.KeycloakClient;
+import healthmonitor.auth.client.KeycloakClient;
 import healthmonitor.auth.exception.AuthException;
 import healthmonitor.auth.exception.ErrorCode;
 import healthmonitor.auth.model.dto.TokenResponseDto;

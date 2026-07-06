@@ -1,4 +1,4 @@
-package healthmonitor.auth.Client;
+package healthmonitor.auth.client;
 
 import healthmonitor.auth.exception.AuthException;
 import healthmonitor.auth.exception.ErrorCode;

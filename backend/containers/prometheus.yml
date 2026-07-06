@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'standard-services'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gateway:8080', 'auth:8087', 'integration:8083']
+
+  - job_name: 'api-v1-services'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['patients:8088', 'medical-staff:8082', 'vital-signs:8084', 'notification:8085', 'visit:8089']

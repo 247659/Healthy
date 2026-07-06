@@ -43,6 +43,12 @@ services:
       - /bin/sh
       - -c
       - "/bin/echo 'postgres:5432:*:postgres:password' > /tmp/pgpassfile && chmod 600 /tmp/pgpassfile && /entrypoint.sh"
+    healthcheck:
+      test: ["CMD", "wget", "-O", "-", "http://localhost:80/misc/ping"]
+      interval: 10s
+      timeout: 10s
+      start_period: 160s
+      retries: 3
     restart: unless-stopped
     networks:
       - backend
@@ -179,10 +185,8 @@ services:
       - SPRING_PROFILES_ACTIVE=prod
 
   auth:
-    container_name: auth-service
+    image: auth-service:latest
     build: ../auth
-    ports:
-      - "8087:8087"
     networks:
       - backend
     depends_on:
@@ -197,19 +201,21 @@ services:
       keycloak:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8087/api/v1/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8087/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=auth-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8087
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   patients:
-    container_name: patient-service
+    image: patient-service:latest
     build: ../patients
-    ports:
-      - "8088:8088"
     networks:
       - backend
     depends_on:
@@ -228,15 +234,17 @@ services:
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=patient-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8088
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   medical-staff:
-    container_name: medical-staff-service
+    image: medical-staff-service:latest
     build: ../medical-staff
     networks:
       - backend
-    ports:
-      - "8082:8082"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -253,15 +261,17 @@ services:
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=medical-staff-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8082
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   vital-signs:
-    container_name: vital-signs-service
+    image: vital-signs-service:latest
     build: ../vital-signs-service
     networks:
       - backend
-    ports:
-      - "8084:8084"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -280,13 +290,15 @@ services:
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=vital-signs-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8084
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   integration:
-    container_name: integration-service
+    image: integration-service:latest
     build: ../integration
-    ports:
-      - "8083:8083"
     networks:
       - backend
     depends_on:
@@ -299,19 +311,21 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8083/api/v1/actuator/health/liveness || exit 1" ]
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8083/actuator/health/liveness || exit 1" ]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=iot-integration-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8083
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   notification:
-    container_name: notification-service
+    image: notification-service:latest
     build: ../notification
-    ports:
-      - "8085:8085"
     networks:
       - backend
     depends_on:
@@ -330,13 +344,15 @@ services:
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=notification-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8085
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   visit:
-    container_name: visit-service
+    image: visit-service:latest
     build: ../visits-service
-    ports:
-      - "8089:8089"
     networks:
       - backend
     depends_on:
@@ -355,7 +371,11 @@ services:
       retries: 5
       start_period: 60s
     environment:
+      - SPRING_APPLICATION_NAME=visit-service
       - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SERVER_PORT=8089
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
 
   loki:
     image: grafana/loki:latest
@@ -384,6 +404,12 @@ services:
         condition: service_healthy
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/9080' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   grafana:
     image: grafana/grafana:latest
@@ -395,6 +421,8 @@ services:
     depends_on:
       loki:
         condition: service_healthy
+      prometheus:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1"]
       interval: 10s
@@ -402,6 +430,22 @@ services:
       retries: 5
     networks:
       - backend
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:9090/-/healthy || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
   frontend-web:
     build:

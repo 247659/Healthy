@@ -1,12 +1,22 @@
 server:
   port: 8080
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      medicalStaffService:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000ms
+        permittedNumberOfCallsInHalfOpenState: 3
 spring:
   application:
     name: api-gateway
   config:
     import: "optional:configserver:http://localhost:8888"
   cloud:
+    loadbalancer:
+      cache:
+        ttl: 5s
     gateway:
       server:
         webflux:
@@ -26,18 +36,38 @@ spring:
               uri: lb://patient-service
               predicates:
                 - Path=/api/v1/patients/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: patientService
+                    fallbackUri: forward:/fallback/global
             - id: medical-staff-service-route
               uri: lb://medical-staff-service
               predicates:
                 - Path=/api/v1/staff/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: medicalStaffService
+                    fallbackUri: forward:/fallback/global
             - id: vital-signs-service-route
               uri: lb://vital-signs-service
               predicates:
                 - Path=/api/v1/vital-signs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: vitalSignsService
+                    fallbackUri: forward:/fallback/global
             - id: notification-service-route
               uri: lb://notification-service
               predicates:
                 - Path=/api/v1/notifications/**, /api/v1/ws-notifications/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: notificationService
+                    fallbackUri: forward:/fallback/global
             - id: auth-service-route
               uri: lb://auth-service
               predicates:
@@ -46,13 +76,23 @@ spring:
               uri: lb://iot-integration-service
               predicates:
                 - Path=/api/v1/integration/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: integrationService
+                    fallbackUri: forward:/fallback/global
             - id: visit-service-route
               uri: lb://visit-service
               predicates:
                 - Path=/api/v1/visits/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: visitService
+                    fallbackUri: forward:/fallback/global
           httpclient:
-            connect-timeout: 2000
-            response-timeout: 5s
+            connect-timeout: 5000
+            response-timeout: 30s
   security:
     oauth2:
       resourceserver:

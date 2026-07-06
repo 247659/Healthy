@@ -1,4 +1,4 @@
-package healthmonitor;
+package healthmonitor.service;
 
 import healthmonitor.client.AuthClient;
 import healthmonitor.client.PatientClient;

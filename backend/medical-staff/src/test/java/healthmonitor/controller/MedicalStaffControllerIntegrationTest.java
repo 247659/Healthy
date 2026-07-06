@@ -1,4 +1,4 @@
-package healthmonitor;
+package healthmonitor.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import healthmonitor.medicalStaff.controller.MedicalStaffController;
