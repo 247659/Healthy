@@ -19,14 +19,16 @@ public class TestAuthClient {
         );
 
         return webClient.post()
-                .uri("/auth/login")
+                .uri("/login")
                 .bodyValue(loginRequest)
                 .retrieve()
-                .onStatus(status -> status.value() == 401 || status.value() == 404,
-                        response -> Mono.empty())
                 .bodyToMono(Map.class)
-                .switchIfEmpty(registerAndLogin(email, password))
                 .map(response -> (String) response.get("accessToken"))
+                .onErrorResume(error -> {
+                    System.out.println(">>> Logowanie nie powiodło się (" + error.getMessage() + "). Trwa rejestracja...");
+                    return registerAndLogin(email, password)
+                            .map(res -> (String) res.get("accessToken"));
+                })
                 .block();
     }
 
@@ -39,7 +41,7 @@ public class TestAuthClient {
         );
 
         return webClient.post()
-                .uri("/auth/register/patient")
+                .uri("/register/patient")
                 .bodyValue(registerRequest)
                 .retrieve()
                 .bodyToMono(Map.class);

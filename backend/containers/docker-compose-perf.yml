@@ -1,0 +1,232 @@
+name: Healthy-Perf
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+  postgres:
+    container_name: healthy_postgres_perf
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_perf:/data/postgres
+      - ./db/docker_postgres_init.sql:/docker-entrypoint-initdb.d/docker_postgres_init.sql
+      - ./containers/perf-data:/data/import
+    ports:
+      - "25432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  pgadmin:
+    container_name: healthy_pgadmin_perf
+    image: dpage/pgadmin4:8.14
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    volumes:
+      - pgadmin_perf:/var/lib/pgadmin
+      - ./db/docker_pgadmin_servers.json:/pgadmin4/servers.json
+    ports:
+      - "25433:80"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/bin/echo 'postgres:5432:*:postgres:password' > /tmp/pgpassfile && chmod 600 /tmp/pgpassfile && /entrypoint.sh"
+    healthcheck:
+      test: ["CMD", "wget", "-O", "-", "http://localhost:80/misc/ping"]
+      interval: 10s
+      timeout: 10s
+      start_period: 160s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - backend
+
+  message_broker:
+    image: rabbitmq:4.1-management
+    container_name: message_broker_perf
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: adminpassword
+    ports:
+      - "25672:5672"
+      - "25673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend
+
+  config-server:
+    container_name: config-server-perf
+    build: ../config
+    ports:
+      - "28888:8888"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - backend
+
+  eureka-server:
+    container_name: eureka-server-perf
+    build: ../eureka
+    ports:
+      - "28761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - backend
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak-server-perf
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://healthy_postgres_perf:5432/keycloak_db
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: password
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_PORT: 9090
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+    command: start-dev --import-realm
+    ports:
+      - "29090:9090"
+      - "29000:9000"
+    volumes:
+      - ./keycloak-config/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', '[ -f /tmp/HealthCheck.java ] || echo "public class HealthCheck { public static void main(String[] args) throws java.lang.Throwable { int code = ((java.net.HttpURLConnection)java.net.URI.create(args[0]).toURL().openConnection()).getResponseCode(); if(code != 200) { System.err.println(\"HTTP Error: \" + code); System.exit(1); } } }" > /tmp/HealthCheck.java && java /tmp/HealthCheck.java http://localhost:9000/health/ready']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+
+  auth:
+    image: auth-service:latest
+    build: ../auth
+    container_name: auth-service-perf
+    networks:
+      - backend
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      message_broker:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8087/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    environment:
+      - SPRING_APPLICATION_NAME=auth-service
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8087
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
+      - KEYCLOAK_SERVER_URL=http://keycloak-server-perf:9090
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server-perf:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server-perf:8761/eureka/
+      - SPRING_RABBITMQ_HOST=message_broker_perf
+
+  gateway:
+    build: ../api-gateway
+    container_name: gateway_perf
+    ports:
+      - "18080:8080"
+    networks:
+      - backend
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      message_broker:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8080/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server-perf:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server-perf:8888
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak-server-perf:9090/realms/healthmonitor-realm
+
+  medical-staff:
+    build: ../medical-staff
+    deploy:
+      replicas: 3
+    networks:
+      - backend
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      message_broker:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --spider -q http://127.0.0.1:8082/api/v1/actuator/health/liveness || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    environment:
+      - SPRING_APPLICATION_NAME=medical-staff-service
+      - SPRING_PROFILES_ACTIVE=prod
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server-perf:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://healthy_postgres_perf:5432/staff_db
+      - SPRING_RABBITMQ_HOST=message_broker_perf
+      - SERVER_PORT=8082
+      - EUREKA_INSTANCE_INSTANCEID=$${SPRING_APPLICATION_NAME}:$${random.uuid}
+
+volumes:
+  postgres_perf:
+  pgadmin_perf:
