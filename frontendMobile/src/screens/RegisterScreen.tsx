@@ -71,7 +71,7 @@ export const RegisterScreen = ({ onNavigateToLogin }: RegisterScreenProps) => {
         // Wyrażenia regularne zgodne z DTO
         const nameRegex = /^[A-Za-zÀ-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż\- ]+$/;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#\-])[A-Za-z\d@$!%*?&._#\-]{8,64}$/;
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._#-])[A-Za-z\d@$!%*?&._#-]{8,64}$/;
 
         // 2. Walidacja imienia
         if (trimmedFirstName.length < 2 || trimmedFirstName.length > 50) {

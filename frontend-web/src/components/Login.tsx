@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import {useState} from 'react';
+import axios, {isAxiosError} from 'axios';
+import {useNavigate} from 'react-router-dom';
 import './Login.css';
-import { authService } from "../api/authClient.ts";
+import {authService} from "../api/authClient.ts";
 import {medicalStaffService} from "../api/staffClient.ts";
 
 // Funkcja pomocnicza do dekodowania tokenu JWT (nie wymaga instalacji zewnętrznych bibliotek)
@@ -10,7 +10,7 @@ const getUserIdFromToken = (token: string) => {
     try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
 
@@ -22,7 +22,10 @@ const getUserIdFromToken = (token: string) => {
     }
 };
 
-const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => void, setRefreshToken: (refreshToken: string) => void }) => {
+const Login = ({setToken, setRefreshToken}: {
+    setToken: (token: string) => void,
+    setRefreshToken: (refreshToken: string) => void
+}) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -36,7 +39,7 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
         setIsLoading(true);
 
         try {
-            const response = await authService.login({ email, password });
+            const response = await authService.login({email, password});
 
             const accessToken = response.accessToken;
             const refreshToken = response.refreshToken;
@@ -60,21 +63,21 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
 
                 // Jeśli profil istnieje (status 200 OK), idziemy do listy pacjentów
                 navigate('/patients');
-            } catch (profileErr: any) {
-                console.log(profileErr);
-                // Jeśli dostaniemy status 404 (Not Found) lub 400, kierujemy na konfigurację profilu
-                if (profileErr.response && (profileErr.response.status === 404 || profileErr.response.status === 400)) {
-                    navigate('/setup');
-                } else {
-                    // Dodany blok else obsługujący inne błędy profilu
-                    if (profileErr.response && profileErr.response.status === 403) {
-                        setError("Brak uprawnień do wyświetlenia profilu medycznego.");
+            } catch (profileErr) {
+                if (isAxiosError(profileErr)) {
+                    // Jeśli dostaniemy status 404 (Not Found) lub 400, kierujemy na konfigurację profilu
+                    if (profileErr.response && (profileErr.response.status === 404 || profileErr.response.status === 400)) {
+                        navigate('/setup');
                     } else {
-                        setError("Wystąpił problem podczas weryfikacji profilu lekarza.");
+                        // Dodany blok else obsługujący inne błędy profilu
+                        if (profileErr.response && profileErr.response.status === 403) {
+                            setError("Brak uprawnień do wyświetlenia profilu medycznego.");
+                        } else {
+                            setError("Wystąpił problem podczas weryfikacji profilu lekarza.");
+                        }
                     }
                 }
             }
-
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 // Zmieniono err.status na err.response?.status dla bezpieczeństwa w Axios
@@ -99,7 +102,12 @@ const Login = ({ setToken, setRefreshToken }: { setToken: (token: string) => voi
                 <p className="login-subtitle">Zaloguj się do panelu medycznego HealthMonitor</p>
 
                 {/* Wyświetlanie błędu - zadziała, ponieważ nie jest on już nadpisywany */}
-                {error && <div className="error-message" style={{ color: 'red', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
+                {error && <div className="error-message" style={{
+                    color: 'red',
+                    marginBottom: '15px',
+                    textAlign: 'center',
+                    fontWeight: 'bold'
+                }}>{error}</div>}
 
                 <form className="login-form" onSubmit={handleLogin}>
                     <div className="input-group">

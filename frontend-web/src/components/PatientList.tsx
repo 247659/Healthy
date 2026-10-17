@@ -10,22 +10,21 @@ const PatientList = () => {
     const [error, setError] = useState<string>('');
 
     useEffect(() => {
+        const fetchPatients = async () => {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            try {
+                const response = await patientService.getAllPatients();
+                setPatients(response);
+            } catch (err) {
+                console.error(err);
+                setError('Błąd pobierania listy pacjentów. Brak uprawnień lub błąd serwera.');
+            }
+        };
+
         fetchPatients();
     }, []);
-
-    const fetchPatients = async () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-
-        try {
-            const response = await patientService.getAllPatients();
-
-            setPatients(response);
-        } catch (err) {
-            console.error(err);
-            setError('Błąd pobierania listy pacjentów. Brak uprawnień lub błąd serwera.');
-        }
-    };
 
     return (
         <div className="page-container">
