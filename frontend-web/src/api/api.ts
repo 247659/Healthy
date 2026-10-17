@@ -109,7 +109,7 @@ api.interceptors.response.use(
 
             } catch (err) {
                 // Błąd odświeżania (np. wygasł również refresh_token) -> Twarde wylogowanie
-                processQueue(err, null);
+                processQueue(err, "");
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');
                 window.location.href = '/'; // Wyrzucamy na login

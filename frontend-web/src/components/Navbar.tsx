@@ -119,15 +119,22 @@ const Navbar = ({ token, setToken, refreshToken, setRefreshToken }: NavbarProps)
                                 anchorEl={anchorEl}
                                 open={openNotifications}
                                 onClose={handleNotificationClose}
-                                PaperProps={{
-                                    elevation: 4,
-                                    sx: { width: 350, maxHeight: 400, mt: 1.5 }
+                                slotProps={{
+                                    paper: {
+                                        elevation: 4,
+                                        sx: { width: 350, maxHeight: 400, mt: 1.5 }
+                                    }
                                 }}
                                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                             >
                                 <Box sx={{ px: 2, py: 1 }}>
-                                    <Typography variant="subtitle1" fontWeight="bold">Powiadomienia</Typography>
+                                    <Typography
+                                        variant="subtitle1"
+                                        sx = {{fontWeight: 'bold'}}
+                                    >
+                                        Powiadomienia
+                                    </Typography>
                                 </Box>
                                 <Divider />
 
@@ -154,8 +161,11 @@ const Navbar = ({ token, setToken, refreshToken, setRefreshToken }: NavbarProps)
                                                     {isCritical ? <ErrorIcon sx={{ color: '#dc2626' }} /> : <WarningAmberIcon sx={{ color: '#f59e0b' }} />}
                                                 </ListItemIcon>
                                                 <ListItemText
-                                                    primary={`Pacjent ID: ${alert.patientId}`}
-                                                    primaryTypographyProps={{ variant: 'subtitle2', fontWeight: 'bold' }}
+                                                    primary={
+                                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                                            Pacjent ID: {alert.patientId}
+                                                        </Typography>
+                                                    }
                                                     secondary={
                                                         <React.Fragment>
                                                             <Typography variant="body2" color="text.primary" sx={{ display: 'block' }}>

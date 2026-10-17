@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.actuate.web.reactive.ReactiveManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.reactive.ReactiveWebSecurityAutoConfiguration;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,7 +23,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "eureka.client.enabled=false")
 @AutoConfigureWebTestClient
-@ImportAutoConfiguration(exclude = {ReactiveWebSecurityAutoConfiguration.class, ReactiveOAuth2ResourceServerAutoConfiguration.class})
+@ImportAutoConfiguration(exclude = {
+        ReactiveWebSecurityAutoConfiguration.class,
+        ReactiveOAuth2ResourceServerAutoConfiguration.class,
+        ReactiveManagementWebSecurityAutoConfiguration.class
+})
 @ActiveProfiles("test")
 class VisitAggregateControllerIntegrationTest {
 
