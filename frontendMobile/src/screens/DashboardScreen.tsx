@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal, Alert } from 'react-native';
 import Svg, { Path, Circle, Polyline, Line, Rect } from 'react-native-svg';
 import notifee, { AndroidImportance } from '@notifee/react-native';
@@ -84,7 +84,7 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
         });
     };
 
-    const fetchVitals = async () => {
+    const fetchVitals = useCallback(async () => {
         if (!patientData?.id) return;
         try {
             const end = new Date();
@@ -104,23 +104,23 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
         } finally {
             setIsLoadingVitals(false);
         }
-    };
+    }, [patientData.id]);
 
-    const fetchDoctors = async () => {
+    const fetchDoctors = useCallback(async () => {
         if (!patientData?.id) return;
         setIsLoadingDoctors(true);
         try {
             // Wywołujemy klienta bez podawania tokena
             const data = await dashboardClient.getAssignedDoctors(patientData.id);
             setDoctors(Array.isArray(data) ? data : []);
-        } catch (error) {
+        } catch {
             setDoctors([]);
         } finally {
             setIsLoadingDoctors(false);
         }
-    };
+    }, [patientData.id]);
 
-    const fetchAlerts = async () => {
+    const fetchAlerts = useCallback(async () => {
         if (!patientData?.id) return;
         try {
             // Wywołujemy klienta bez podawania tokena
@@ -147,7 +147,7 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
         } catch (error) {
             console.error("Błąd pobierania alertów:", error);
         }
-    };
+    }, [patientData.id]);
 
     const openAddDoctorModal = async () => {
         setIsModalVisible(true);
@@ -156,7 +156,7 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
             // Wywołujemy klienta bez podawania tokena
             const data = await dashboardClient.getAllDoctors();
             setAllDoctors(data);
-        } catch (error) {
+        } catch {
             Alert.alert("Błąd", "Nie udało się załadować listy lekarzy.");
         } finally {
             setIsLoadingAllDoctors(false);
@@ -170,7 +170,7 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
             Alert.alert("Sukces", "Lekarz został przypisany!");
             setIsModalVisible(false);
             fetchDoctors();
-        } catch (error) {
+        } catch {
             Alert.alert("Błąd", "Wystąpił błąd.");
         }
     };
@@ -181,7 +181,7 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
             await dashboardClient.unassignDoctor(doctorId, patientData.id);
             Alert.alert("Sukces", "Lekarz został odpięty.");
             fetchDoctors();
-        } catch (error) {
+        } catch {
             Alert.alert("Błąd", "Wystąpił błąd podczas odpinania lekarza.");
         }
     };
@@ -198,7 +198,7 @@ export const DashboardScreen = ({ patientData, onLogout, onNavigateToHistory, on
 
         return () => clearInterval(intervalId);
         // Z dependencies usunięto token
-    }, [patientData?.id]);
+    }, [fetchAlerts, fetchDoctors, fetchVitals, patientData.id]);
 
     const availableDoctors = allDoctors.filter(doc => !doctors.find(d => d.id === doc.id));
 

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { medicalStaffService } from "../api/staffClient.ts";
 import type { MedicalStaff } from "../types/medicalStaff.ts";
+import {isAxiosError} from "axios";
 
 // Pomocniczy interfejs dla stanu specjalizacji
 interface SpecState {
@@ -36,34 +37,33 @@ const StaffProfile = () => {
 
     const token = localStorage.getItem('access_token');
 
-    const fetchProfile = useCallback(async () => {
-        try {
-            const response = await medicalStaffService.getMedicalStaffInformationById(id as string);
-
-            setFirstName(response.firstName);
-            setLastName(response.lastName);
-            setPhoneNumber(response.phoneNumber);
-            setLicenseNumber(response.licenseNumber);
-
-            // Wczytanie specjalizacji (lub ustawienie jednej pustej jako domyślnej)
-            if (response.specializations && response.specializations.length > 0) {
-                setSpecializations(response.specializations);
-            } else {
-                setSpecializations([{ name: '', obtainedDate: '', certificateNumber: '' }]);
-            }
-            setIsLoading(false);
-        } catch (err) {
-            console.error("Błąd pobierania profilu:", err);
-            setError("Nie udało się załadować danych profilu.");
-            setIsLoading(false);
-        }
-    }, [id]);
-
     useEffect(() => {
-        if (id) {
-            fetchProfile();
-        }
-    }, [fetchProfile, token]);
+        const fetchProfile = async () => {
+            if (!id) return;
+
+            try {
+                const response = await medicalStaffService.getMedicalStaffInformationById(id as string);
+
+                setFirstName(response.firstName);
+                setLastName(response.lastName);
+                setPhoneNumber(response.phoneNumber);
+                setLicenseNumber(response.licenseNumber);
+
+                if (response.specializations && response.specializations.length > 0) {
+                    setSpecializations(response.specializations);
+                } else {
+                    setSpecializations([{ name: '', obtainedDate: '', certificateNumber: '' }]);
+                }
+            } catch (err) {
+                console.error("Błąd pobierania profilu:", err);
+                setError("Nie udało się załadować danych profilu.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [id, token]);
 
     // --- Funkcje obsługi specjalizacji ---
     const handleSpecChange = (index: number, field: keyof SpecState, value: string) => {
@@ -116,10 +116,12 @@ const StaffProfile = () => {
                 setPassword('');
                 setConfirmPassword('');
             }
-        } catch (err: any) {
-            console.error('Błąd aktualizacji:', err);
-            const backendMsg = err.response?.data?.message || 'Sprawdź poprawność danych (np. 7 cyfr dla numerów).';
-            setError(`Nie udało się zaktualizować profilu. ${backendMsg}`);
+        } catch (err) {
+            if (isAxiosError(err)) {
+                console.error('Błąd aktualizacji:', err);
+                const backendMsg = err.response?.data?.message || 'Sprawdź poprawność danych (np. 7 cyfr dla numerów).';
+                setError(`Nie udało się zaktualizować profilu. ${backendMsg}`);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -131,7 +133,6 @@ const StaffProfile = () => {
         setConfirmPassword('');
         setError('');
         setIsLoading(true);
-        fetchProfile(); // Reset danych do stanu z serwera
     };
 
     if (isLoading && !isEditing) {
