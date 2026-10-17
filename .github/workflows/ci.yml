@@ -1,0 +1,154 @@
+name: HealthMonitor CI Pipeline
+
+# Powiązanie ze zdarzeniami w repozytorium (push, pull request / merge)
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  # ==========================================
+  # 1. Budowanie mikroserwisów Java (Backend)
+  # ==========================================
+  build-backend-java:
+    name: Build Backend (Java / Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Downloading code from a repository
+        uses: actions/checkout@v4
+
+      - name: JDK 21 configuration
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Running tests and building the application
+        run: mvn clean package -Dtest="!*PerformanceTest"
+
+      - name: Publishing test reports in the GitHub UI
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Backend Test Report (JUnit)
+          path: 'backend/**/target/surefire-reports/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Saving test reports as a CI artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-reports
+          path: |
+            backend/**/target/surefire-reports/*.xml
+            backend/**/target/surefire-reports/*.txt
+          retention-days: 30
+
+  # ==========================================
+  # 2. Weryfikacja modułu Machine Learning (Python)
+  # ==========================================
+  build-backend-python:
+    name: Check Machine Learning & Simulator (Python)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Downloading code from a repository
+        uses: actions/checkout@v4
+
+      - name: Python configuration
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: 'backend/machine-learing/requirements.txt'
+
+      - name: Installing ML dependencies
+        working-directory: ./backend/machine-learing
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Checking Python script compilation (Syntax Check)
+        run: |
+          python -m py_compile backend/machine-learing/*.py
+          python -m py_compile backend/simulator/*.py
+
+  # ==========================================
+  # 3. Budowanie aplikacji Frontend Web (Vite + React)
+  # ==========================================
+  build-frontend-web:
+    name: Build Frontend Web
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend-web
+
+    steps:
+      - name: Downloading code from a repository
+        uses: actions/checkout@v4
+
+      - name: Node.js configuration
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend-web/package-lock.json'
+
+      - name: Installing dependencies
+        run: npm ci
+
+      - name: Checking code with a linter (ESLint)
+        run: npm run lint --if-present
+
+      - name: Building a web application
+        run: npm run build
+
+  # ==========================================
+  # 4. Budowanie i sprawdzanie Frontend Mobile (React Native)
+  # ==========================================
+  build-frontend-mobile:
+    name: Check Frontend Mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontendMobile
+
+    steps:
+      - name: Downloading code from a repository
+        uses: actions/checkout@v4
+
+      - name: Node.js configuration
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontendMobile/package-lock.json'
+
+      - name: Installing dependencies
+        run: npm ci
+
+      - name: Running the linter
+        run: npm run lint --if-present
+
+      - name: Running unit tests (Jest)
+        run: npm test -- --watchAll=false --coverage
+
+      - name: Saving the mobile test report as a CI artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-test-coverage-report
+          path: frontendMobile/coverage/
+          retention-days: 30
