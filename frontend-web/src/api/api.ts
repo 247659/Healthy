@@ -29,8 +29,10 @@ api.interceptors.request.use((config) => {
 
 let isRefreshing = false;
 // Kolejka dla żądań, które czekają na nowy token
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let failedQueue: Array<{ resolve: (value?: unknown) => void, reject: (reason?: any) => void }> = [];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const processQueue = (error: any, token: string) => {
     failedQueue.forEach(prom => {
         if (error) {
@@ -107,7 +109,7 @@ api.interceptors.response.use(
 
             } catch (err) {
                 // Błąd odświeżania (np. wygasł również refresh_token) -> Twarde wylogowanie
-                processQueue(err, null);
+                processQueue(err, "");
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');
                 window.location.href = '/'; // Wyrzucamy na login

@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { Patient } from "../types/patient.ts";
 import { vitalService } from "../api/vitalClient.ts";
-import { api } from "../api/api.ts"; // Zaimportowano axios api do pobrania alertów
+import { api } from "../api/api.ts";
+import type {AlertDto} from "../hooks/useNotifications.ts"; // Zaimportowano axios api do pobrania alertów
 
 interface VitalSigns {
     patientId?: string;
@@ -29,7 +30,19 @@ const PatientDetails = () => {
     const [historyVitals, setHistoryVitals] = useState<VitalSigns[]>([]);
     const [latestVitals, setLatestVitals] = useState<VitalSigns | null>(null);
     const [isVitalsLoading, setIsVitalsLoading] = useState(true);
-    const [alerts, setAlerts] = useState<any[]>([]);
+    const [alerts, setAlerts] = useState<AlertDto[]>([]);
+
+    // --- DANE WYKRESÓW ---
+    const chartData = useMemo(() => {
+        return [...historyVitals].reverse().map(v => ({
+            time: new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            heartRate: v.measurements?.heartRate,
+            systolic: v.measurements?.bloodPressure?.systolic,
+            diastolic: v.measurements?.bloodPressure?.diastolic,
+            spO2: v.measurements?.spO2,
+            temperature: v.measurements?.temperature
+        }));
+    }, [historyVitals]);
 
     useEffect(() => {
         if (!patient || !token) {
@@ -73,7 +86,7 @@ const PatientDetails = () => {
                 if (data.length > 0) {
                     setLatestVitals(data[0]);
                 }
-            } catch (err) {
+            } catch {
                 // ignorowane w tle
             }
         };
@@ -102,18 +115,6 @@ const PatientDetails = () => {
     const diaStats = getStats(v => v.measurements?.bloodPressure?.diastolic);
     const spo2Stats = getStats(v => v.measurements?.spO2);
     const tempStats = getStats(v => v.measurements?.temperature);
-
-    // --- DANE WYKRESÓW ---
-    const chartData = useMemo(() => {
-        return [...historyVitals].reverse().map(v => ({
-            time: new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            heartRate: v.measurements?.heartRate,
-            systolic: v.measurements?.bloodPressure?.systolic,
-            diastolic: v.measurements?.bloodPressure?.diastolic,
-            spO2: v.measurements?.spO2,
-            temperature: v.measurements?.temperature
-        }));
-    }, [historyVitals]);
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#f4f7f6', padding: '20px 5%', fontFamily: "'Inter', system-ui, sans-serif" }}>

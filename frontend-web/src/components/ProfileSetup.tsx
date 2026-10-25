@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { MedicalStaff } from "../types/medicalStaff.ts";
 import { medicalStaffService } from "../api/staffClient.ts";
+import {isAxiosError} from "axios";
 
 // Pomocniczy interfejs dla stanu specjalizacji
 interface SpecState {
@@ -11,8 +12,7 @@ interface SpecState {
 }
 
 const ProfileSetup = () => {
-    const [id, setId] = useState('');
-
+    const [error, setError] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -28,22 +28,22 @@ const ProfileSetup = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+
 
     const navigate = useNavigate();
 
-    useEffect(() => {
+    const [id] = useState<string>(() => {
         const token = localStorage.getItem('access_token');
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setId(payload.sub);
-            } catch (e) {
-                console.error("Błąd dekodowania tokena", e);
-                setError("Błąd sesji. Zaloguj się ponownie.");
-            }
+        if (!token) return '';
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.sub || '';
+        } catch (e) {
+            console.error("Błąd dekodowania tokena", e);
+            setError("Błąd sesji. Zaloguj się ponownie")
+            return '';
         }
-    }, []);
+    });
 
     // Funkcje do obsługi dynamicznej listy specjalizacji
     const handleSpecChange = (index: number, field: keyof SpecState, value: string) => {
@@ -86,10 +86,12 @@ const ProfileSetup = () => {
             await medicalStaffService.setupProfile(data)
 
             navigate('/patients');
-        } catch (err: any) {
-            console.error('Błąd podczas zapisywania profilu:', err);
-            const backendMsg = err.response?.data?.message || 'Sprawdź poprawność danych (np. 7 cyfr dla numeru PWZ).';
-            setError(`Nie udało się zapisać profilu. ${backendMsg}`);
+        } catch (err) {
+            if (isAxiosError(err)) {
+                console.error('Błąd podczas zapisywania profilu:', err);
+                const backendMsg = err.response?.data?.message || 'Sprawdź poprawność danych (np. 7 cyfr dla numeru PWZ).';
+                setError(`Nie udało się zapisać profilu. ${backendMsg}`);
+            }
         } finally {
             setIsLoading(false);
         }

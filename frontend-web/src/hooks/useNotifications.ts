@@ -3,6 +3,7 @@ import {Client} from '@stomp/stompjs';
 import type {Notification} from "../types/notification.ts";
 import {notificationService} from "../api/notificationClient.ts";
 import SockJS from 'sockjs-client';
+import type {Patient} from "../types/patient.ts";
 
 export interface AlertDto {
     alertId?: number;
@@ -54,9 +55,9 @@ export const useNotifications = () => {
                 const patients = await patientsResponse.json();
 
                 // KROK B: Dla każdego pacjenta odpytujemy Twój NotificationController
-                const alertPromises = patients.map(async (patient: any) => {
+                const alertPromises = patients.map(async (patient: Patient) => {
 
-                    const patientId = patient.id || patient.patientId;
+                    const patientId = patient.id;
                     //TODO W PRZYSZLOSCI WYSYLAC LISTE DLA OGRANICZENIA ZAPYTAN
                     return await notificationService.getNewNotifications(patientId);
                 });
