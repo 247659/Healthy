@@ -44,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >
-          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar 
+          mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
           -Dsonar.projectKey=healthmonitor-java-backend
           -Dsonar.qualitygate.wait=true
 
