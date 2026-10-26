@@ -6,55 +6,56 @@ import logging
 logger = logging.getLogger("xai_explainer")
 
 POPULATION_NORMS: dict[str, dict] = {
-    "heartRate":   {"min": 60,   "max": 100,  "unit": "ud./min", "label": "Tętno"},
-    "sys_bp":      {"min": 90,   "max": 140,  "unit": "mmHg",    "label": "Ciśnienie skurczowe"},
-    "dia_bp":      {"min": 60,   "max": 90,   "unit": "mmHg",    "label": "Ciśnienie rozkurczowe"},
-    "temperature": {"min": 36.0, "max": 37.5, "unit": "°C",      "label": "Temperatura"},
-    "spO2":        {"min": 95,   "max": 100,  "unit": "%",        "label": "Saturacja (SpO2)"},
+    "heartRate": {"min": 60, "max": 100, "unit": "ud./min", "label": "Tętno"},
+    "sys_bp": {"min": 90, "max": 140, "unit": "mmHg", "label": "Ciśnienie skurczowe"},
+    "dia_bp": {"min": 60, "max": 90, "unit": "mmHg", "label": "Ciśnienie rozkurczowe"},
+    "temperature": {"min": 36.0, "max": 37.5, "unit": "°C", "label": "Temperatura"},
+    "spO2": {"min": 95, "max": 100, "unit": "%", "label": "Saturacja (SpO2)"},
 }
 
 RISK_CRITICAL = 0.80
-RISK_HIGH     = 0.60
+RISK_HIGH = 0.60
 RISK_MODERATE = 0.40
 
 
 @dataclass
 class VitalsSnapshot:
-    heartRate:   float
-    sys_bp:      float
-    dia_bp:      float
+    heartRate: float
+    sys_bp: float
+    dia_bp: float
     temperature: float
-    spO2:        float
+    spO2: float
 
 
 @dataclass
 class XAIReport:
-    severity:       str
-    risk_score:     float
-    headline:       str
-    details:        list[str]
+    severity: str
+    risk_score: float
+    headline: str
+    details: list[str]
     recommendation: str
-    method_used:    str
-    raw_values:     dict
-    forecast_note:  Optional[str] = None
+    method_used: str
+    raw_values: dict
+    forecast_note: Optional[str] = None
 
 
-def _describe_deviations(snapshot: VitalsSnapshot, patient_stats: Optional[dict] = None) -> list[str]:
+def _describe_deviations(snapshot: VitalsSnapshot,
+                         patient_stats: Optional[dict] = None) -> list[str]:
     obs: list[str] = []
     values = {
-        "heartRate":   snapshot.heartRate,
-        "sys_bp":      snapshot.sys_bp,
-        "dia_bp":      snapshot.dia_bp,
+        "heartRate": snapshot.heartRate,
+        "sys_bp": snapshot.sys_bp,
+        "dia_bp": snapshot.dia_bp,
         "temperature": snapshot.temperature,
-        "spO2":        snapshot.spO2,
+        "spO2": snapshot.spO2,
     }
     for param, value in values.items():
-        norm  = POPULATION_NORMS[param]
+        norm = POPULATION_NORMS[param]
         label = norm["label"]
-        unit  = norm["unit"]
+        unit = norm["unit"]
 
         if patient_stats and param in patient_stats:
-            mu    = patient_stats[param]["mean"]
+            mu = patient_stats[param]["mean"]
             sigma = patient_stats[param]["std"]
             if sigma > 0:
                 z = (value - mu) / sigma
@@ -92,9 +93,9 @@ def _headline(severity: str, risk_score: float) -> str:
     pct = f"{risk_score:.0%}"
     return {
         "CRITICAL": f"ALERT KRYTYCZNY - wykryto powazna anomalie (ryzyko: {pct})",
-        "HIGH":     f"Ostrzezenie - parametry zyciowe wymagaja uwagi (ryzyko: {pct})",
+        "HIGH": f"Ostrzezenie - parametry zyciowe wymagaja uwagi (ryzyko: {pct})",
         "MODERATE": f"Uwaga - zaobserwowano lagodne odchylenia (ryzyko: {pct})",
-        "OK":       f"Stan pacjenta stabilny (ryzyko: {pct})",
+        "OK": f"Stan pacjenta stabilny (ryzyko: {pct})",
     }[severity]
 
 
@@ -139,14 +140,14 @@ def _method_note(method_used: str) -> str:
 
 
 def explain(
-    snapshot: VitalsSnapshot,
-    risk_score: float,
-    is_anomaly: bool,
-    method_used: str = "IsolationForest",
-    patient_stats: Optional[dict] = None,
-    lstm_forecast: Optional[dict] = None,
+        snapshot: VitalsSnapshot,
+        risk_score: float,
+        is_anomaly: bool,
+        method_used: str = "IsolationForest",
+        patient_stats: Optional[dict] = None,
+        lstm_forecast: Optional[dict] = None,
 ) -> XAIReport:
-    sev          = _severity(risk_score)
+    sev = _severity(risk_score)
     observations = _describe_deviations(snapshot, patient_stats)
 
     if is_anomaly and not observations:
@@ -160,7 +161,7 @@ def explain(
 
     forecast_note: Optional[str] = None
     if lstm_forecast:
-        eta     = lstm_forecast.get("eta_minutes", "?")
+        eta = lstm_forecast.get("eta_minutes", "?")
         at_risk = [
             f"{POPULATION_NORMS.get(p, {}).get('label', p)}: "
             f"~{v:.1f} {POPULATION_NORMS.get(p, {}).get('unit', '')}"
@@ -169,9 +170,9 @@ def explain(
         ]
         if at_risk:
             forecast_note = (
-                f"Prognoza LSTM (za ~{eta} min): "
-                + ", ".join(at_risk)
-                + ". Zalecane dzialanie prewencyjne."
+                    f"Prognoza LSTM (za ~{eta} min): "
+                    + ", ".join(at_risk)
+                    + ". Zalecane dzialanie prewencyjne."
             )
             observations.append(f"[Prognoza] {forecast_note}")
 
@@ -183,12 +184,12 @@ def explain(
         recommendation=_recommendation(sev),
         method_used=method_used,
         raw_values={
-            "heartRate":   snapshot.heartRate,
-            "sys_bp":      snapshot.sys_bp,
-            "dia_bp":      snapshot.dia_bp,
+            "heartRate": snapshot.heartRate,
+            "sys_bp": snapshot.sys_bp,
+            "dia_bp": snapshot.dia_bp,
             "temperature": snapshot.temperature,
-            "spO2":        snapshot.spO2,
-            "risk_score":  round(risk_score, 3),
+            "spO2": snapshot.spO2,
+            "risk_score": round(risk_score, 3),
         },
         forecast_note=forecast_note,
     )

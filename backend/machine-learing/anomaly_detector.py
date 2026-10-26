@@ -1,11 +1,12 @@
-import joblib
-import numpy as np
 import logging
 import os
 from typing import Optional
+import joblib
+import numpy as np
 
 try:
     from tensorflow.keras.models import load_model
+
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
@@ -20,27 +21,27 @@ logger = logging.getLogger("anomaly_detector")
 class VitalsAnomalyDetector:
 
     def __init__(self, models_dir: str = os.getenv("MODELS_DIR", "./models/")):
-        self.models_dir     = models_dir
-        self.loaded_models  = {}
-        self.global_model   = self._load_model(
+        self.models_dir = models_dir
+        self.loaded_models = {}
+        self.global_model = self._load_model(
             os.path.join(models_dir, "global_isolation_forest.pkl")
         )
-        self.use_lstm       = False
-        self.TIME_STEPS     = 10
+        self.use_lstm = False
+        self.TIME_STEPS = 10
         self.patient_buffers: dict[str, list] = {}
-        self.normalizer     = get_normalizer()
+        self.normalizer = get_normalizer()
 
         if TENSORFLOW_AVAILABLE:
             try:
-                lstm_path   = os.path.join(models_dir, "global_lstm_model.keras")
+                lstm_path = os.path.join(models_dir, "global_lstm_model.keras")
                 if os.path.exists(lstm_path):
                     self.lstm_model = load_model(lstm_path)
-                    self.use_lstm   = True
+                    self.use_lstm = True
                     logger.info("Globalny model LSTM zaladowany.")
                 else:
                     logger.info("Brak modelu LSTM — tylko Isolation Forest.")
             except Exception as e:
-                logger.error(f"Blad ladowania LSTM: {e}")
+                logger.error("Blad ladowania LSTM: %s", e)
 
     def _load_model(self, path: str):
         try:
@@ -58,11 +59,11 @@ class VitalsAnomalyDetector:
     def _get_model(self, patient_id: str):
         if patient_id in self.loaded_models:
             return self.loaded_models[patient_id]
-        path  = os.path.join(self.models_dir, f"{patient_id}_iforest.pkl")
+        path = os.path.join(self.models_dir, f"{patient_id}_iforest.pkl")
         model = self._load_model(path)
         if model:
             self.loaded_models[patient_id] = model
-            logger.info(f"Zaladowano model per-pacjent: {patient_id}")
+            logger.info(f"Zaladowano model per-pacjent: %s", patient_id)
             return model
         return self.global_model
 
@@ -70,11 +71,11 @@ class VitalsAnomalyDetector:
         patient_id = payload.patientId
 
         raw_features = {
-            "heartRate":   payload.heartRate,
-            "sys_bp":      payload.systolicBp,
-            "dia_bp":      payload.diastolicBp,
+            "heartRate": payload.heart_rate,
+            "sys_bp": payload.systolic_bp,
+            "dia_bp": payload.diastolic_bp,
             "temperature": payload.temperature,
-            "spO2":        payload.spO2,
+            "spO2": payload.sp_o2,
         }
 
         raw_features = {k: v for k, v in raw_features.items() if v is not None}
@@ -85,19 +86,19 @@ class VitalsAnomalyDetector:
 
         model = self._get_model(patient_id)
         if model is None:
-            if_risk    = 0.0
+            if_risk = 0.0
             if_anomaly = False
         else:
-            norm_2d    = norm_vector.reshape(1, -1)
+            norm_2d = norm_vector.reshape(1, -1)
             prediction = model.predict(norm_2d)[0]
             if_anomaly = prediction == -1
-            raw_score  = model.decision_function(norm_2d)[0]
-            if_risk    = float(np.clip(0.5 - raw_score, 0.0, 1.0))
+            raw_score = model.decision_function(norm_2d)[0]
+            if_risk = float(np.clip(0.5 - raw_score, 0.0, 1.0))
 
-        method      = "IsolationForest"
-        final_risk  = if_risk
-        final_anom  = if_anomaly
-        lstm_risk   = None
+        method = "IsolationForest"
+        final_risk = if_risk
+        final_anom = if_anomaly
+        lstm_risk = None
         lstm_forecast_for_xai: Optional[dict] = None
         if self.use_lstm:
             if patient_id not in self.patient_buffers:
@@ -108,28 +109,28 @@ class VitalsAnomalyDetector:
                 self.patient_buffers[patient_id].pop(0)
 
             if len(self.patient_buffers[patient_id]) == self.TIME_STEPS:
-                window       = np.array(self.patient_buffers[patient_id])
-                lstm_input   = np.expand_dims(window, axis=0)
-                recon        = self.lstm_model.predict(lstm_input, verbose=0)
-                mse          = float(np.mean(np.power(lstm_input - recon, 2)))
-                lstm_risk    = float(np.clip(mse * 2, 0.0, 1.0))
+                window = np.array(self.patient_buffers[patient_id])
+                lstm_input = np.expand_dims(window, axis=0)
+                recon = self.lstm_model.predict(lstm_input, verbose=0)
+                mse = float(np.mean(np.power(lstm_input - recon, 2)))
+                lstm_risk = float(np.clip(mse * 2, 0.0, 1.0))
                 lstm_anomaly = lstm_risk > 0.7
 
                 final_risk = max(if_risk, lstm_risk)
                 final_anom = if_anomaly or lstm_anomaly
-                method     = "Hybrid (IF + LSTM)"
+                method = "Hybrid (IF + LSTM)"
 
-                last_recon_norm    = recon[0, -1, :]
-                denorm             = self.normalizer.denormalize(patient_id, last_recon_norm, patient_stats)
+                last_recon_norm = recon[0, -1, :]
+                denorm = self.normalizer.denormalize(patient_id, last_recon_norm, patient_stats)
                 lstm_forecast_for_xai = {p: denorm[p] for p in PARAM_ORDER}
                 lstm_forecast_for_xai["eta_minutes"] = 5
 
         snapshot = VitalsSnapshot(
-            heartRate=payload.heartRate,
-            sys_bp=payload.systolicBp,
-            dia_bp=payload.diastolicBp,
+            heartRate=payload.heart_rate,
+            sys_bp=payload.systolic_bp,
+            dia_bp=payload.diastolic_bp,
             temperature=payload.temperature,
-            spO2=payload.spO2,
+            spO2=payload.sp_o2,
         )
 
         xai_stats = (
@@ -148,21 +149,21 @@ class VitalsAnomalyDetector:
         )
 
         result: dict = {
-            "is_anomaly":   final_anom,
-            "risk_score":   round(final_risk, 2),
+            "is_anomaly": final_anom,
+            "risk_score": round(final_risk, 2),
             "personalized": self.normalizer.is_personalized(patient_id),
-            "method":       method,
+            "method": method,
             "xai": {
-                "severity":       xai_report.severity,
-                "headline":       xai_report.headline,
-                "details":        xai_report.details,
+                "severity": xai_report.severity,
+                "headline": xai_report.headline,
+                "details": xai_report.details,
                 "recommendation": xai_report.recommendation,
-                "forecast_note":  xai_report.forecast_note,
+                "forecast_note": xai_report.forecast_note,
             },
         }
 
         if lstm_risk is not None:
-            result["if_risk"]   = round(if_risk, 2)
+            result["if_risk"] = round(if_risk, 2)
             result["lstm_risk"] = round(lstm_risk, 2)
         else:
             lstm_buf = self.patient_buffers.get(patient_id, [])

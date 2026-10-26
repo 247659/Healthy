@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Any
+import os
 
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
-import os
+
 
 class VitalsRepository:
     def __init__(self, client: InfluxDBClientAsync):
@@ -10,7 +11,8 @@ class VitalsRepository:
         self.bucket = os.getenv("INFLUX_BUCKET", "vital_signs")
         self.org = os.getenv("INFLUX_ORG", "health_monitoring")
 
-    async def get_measurements(self, patient_id: str, start_time: datetime, end_time: datetime) -> list[Any]:
+    async def get_measurements(self, patient_id: str, start_time: datetime,
+                               end_time: datetime) -> list[Any]:
         query = """
                 from(bucket: _bucket)
                     |> range(start: _start, stop: _stop)

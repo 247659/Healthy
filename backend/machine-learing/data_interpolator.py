@@ -1,43 +1,44 @@
 from __future__ import annotations
-
-import numpy as np
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
+
+import numpy as np
 
 logger = logging.getLogger("data_interpolator")
 
 PHYSICAL_LIMITS: dict[str, tuple[float, float]] = {
-    "heartRate":   (20,   300),
-    "sys_bp":      (50,   300),
-    "dia_bp":      (30,   200),
+    "heartRate": (20, 300),
+    "sys_bp": (50, 300),
+    "dia_bp": (30, 200),
     "temperature": (30.0, 45.0),
-    "spO2":        (50,   100),
+    "spO2": (50, 100),
 }
 
 MAX_GAP_SECONDS = 30
 
+
 @dataclass
 class VitalsReading:
-    timestamp:    datetime
-    heartRate:    float
-    sys_bp:       float
-    dia_bp:       float
-    temperature:  float
-    spO2:         float
+    timestamp: datetime
+    heart_rate: float
+    sys_bp: float
+    dia_bp: float
+    temperature: float
+    sp_o2: float
     interpolated: bool = False
-    rejected:     bool = False
+    rejected: bool = False
     reject_reason: str = ""
 
 
 def _to_dict(r: VitalsReading) -> dict:
     return {
-        "heartRate":   r.heartRate,
-        "sys_bp":      r.sys_bp,
-        "dia_bp":      r.dia_bp,
+        "heartRate": r.heart_rate,
+        "sys_bp": r.sys_bp,
+        "dia_bp": r.dia_bp,
         "temperature": r.temperature,
-        "spO2":        r.spO2,
+        "spO2": r.sp_o2,
     }
 
 
@@ -49,22 +50,22 @@ def validate_reading(reading: VitalsReading) -> VitalsReading:
             reading.rejected = True
             reading.reject_reason = f"Brak wartosci parametru: {param}"
             return reading
-        if not (lo <= v <= hi):
+        if not lo <= v <= hi:
             reading.rejected = True
             reading.reject_reason = (
                 f"{param}={v} poza zakresem fizycznym [{lo}, {hi}]"
             )
             logger.warning(
-                f"[Interpolator] Odrzucono artefakt: {reading.reject_reason}"
+                "[Interpolator] Odrzucono artefakt: %s", reading.reject_reason
             )
             return reading
     return reading
 
 
 def interpolate_gap(
-    prev: VitalsReading,
-    curr: VitalsReading,
-    interval_seconds: float = 60.0,
+        prev: VitalsReading,
+        curr: VitalsReading,
+        interval_seconds: float = 60.0,
 ) -> list[VitalsReading]:
     gap_seconds = (curr.timestamp - prev.timestamp).total_seconds()
 
@@ -88,31 +89,31 @@ def interpolate_gap(
 
     interpolated: list[VitalsReading] = []
     for step in range(1, n_missing + 1):
-        alpha      = step / (n_missing + 1)
+        alpha = step / (n_missing + 1)
         interp_val = prev_vals + alpha * (curr_vals - prev_vals)
-        ts         = prev.timestamp + timedelta(seconds=interval_seconds * step)
+        ts = prev.timestamp + timedelta(seconds=interval_seconds * step)
 
         r = VitalsReading(
             timestamp=ts,
-            heartRate=round(float(interp_val[0]), 1),
+            heart_rate=round(float(interp_val[0]), 1),
             sys_bp=round(float(interp_val[1]), 1),
             dia_bp=round(float(interp_val[2]), 1),
             temperature=round(float(interp_val[3]), 2),
-            spO2=round(float(interp_val[4]), 1),
+            sp_o2=round(float(interp_val[4]), 1),
             interpolated=True,
         )
         interpolated.append(r)
 
     logger.info(
-        f"[Interpolator] Uzupelniono {n_missing} brakujacych odczytow "
+        f"[Interpolator] Uzupelniono %s brakujacych odczytow "
         f"(przerwa {gap_seconds:.0f}s)"
     )
     return interpolated
 
 
 def process_sequence(
-    readings: list[VitalsReading],
-    interval_seconds: float = 60.0,
+        readings: list[VitalsReading],
+        interval_seconds: float = 60.0,
 ) -> list[VitalsReading]:
     if not readings:
         return []
@@ -127,7 +128,7 @@ def process_sequence(
             validated.append(r)
 
     if rejected_count:
-        logger.info(f"[Interpolator] Odrzucono {rejected_count} artefaktow")
+        logger.info("[Interpolator] Odrzucono %s artefaktow", rejected_count)
 
     if len(validated) < 2:
         return validated
@@ -145,8 +146,9 @@ def process_sequence(
 
     if interpolated_count:
         logger.info(
-            f"[Interpolator] Dodano {interpolated_count} interpolowanych odczytow "
-            f"(z {len(validated)} oryginalnych -> {len(result)} lacznie)"
+            "[Interpolator] Dodano %s interpolowanych odczytow "
+            "(z %s oryginalnych -> %s lacznie)",
+            interpolated_count, len(validated), len(result)
         )
 
     return result
@@ -156,9 +158,9 @@ def payload_to_reading(payload, timestamp: Optional[datetime] = None) -> VitalsR
     ts = timestamp or payload.timestamp
     return VitalsReading(
         timestamp=ts,
-        heartRate=payload.heartRate,
-        sys_bp=payload.systolicBp,
-        dia_bp=payload.diastolicBp,
+        heart_rate=payload.heart_rate,
+        sys_bp=payload.systolic_bp,
+        dia_bp=payload.diastolic_bp,
         temperature=payload.temperature,
-        spO2=payload.spO2,
+        sp_o2=payload.sp_o2,
     )

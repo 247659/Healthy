@@ -1,16 +1,17 @@
 import time
 import json
 import random
-import requests
 import argparse
 import logging
 from datetime import datetime, timezone, timedelta
 import os
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import requests
+
 
 class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def do_get(self):
         if self.path == '/health':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -20,13 +21,16 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+
 def run_health_server():
     server = HTTPServer(('0.0.0.0', 8000), HealthCheckHandler)
     server.serve_forever()
 
+
 threading.Thread(target=run_health_server, daemon=True).start()
 
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 
 
 class PatientSimulator:
@@ -107,7 +111,7 @@ class PatientSimulator:
 def run_realtime(args):
     """Wysyłanie danych na żywo co X sekund przez HTTP"""
     logging.info(f"--- TRYB REALTIME ---")
-    logging.info(f"Pacjent: {args.patient_id} | Interwał: {args.interval}s | Cel: {args.url}")
+    logging.info("Pacjent: %s | Interwał: %s s | Cel: %s", args.patient_id, args.interval, args.url)
 
     patient = PatientSimulator(args.patient_id)
 
@@ -121,12 +125,12 @@ def run_realtime(args):
             try:
                 response = requests.post(args.url, json=payload, timeout=2, headers=api_headers)
                 if response.status_code in [200, 201, 202]:
-                    logging.info(f"Wysłano dane (Anomalia: {is_anomaly}). Status: {response.status_code}")
+                    logging.info("Wysłano dane (Anomalia: %s). Status: %s", is_anomaly, response.status_code)
                 else:
-                    logging.warning(f"Serwer zwrócił status: {response.status_code} - {response.text}")
+                    logging.warning("Serwer zwrócił status: %s - %s", response.status_code, response.text)
 
             except requests.exceptions.RequestException:
-                logging.error(f"Nie można połączyć z {args.url}. Czy serwer działa?")
+                logging.error("Nie można połączyć z %s. Czy serwer działa?", args.url)
 
             time.sleep(args.interval)
 
@@ -139,7 +143,7 @@ def run_batch(args):
     filename = args.file if args.file else f"{args.patient_id}.jsonl"
 
     logging.info(f"--- TRYB BATCH ---")
-    logging.info(f"Generowanie danych z {args.days} dni dla pacjenta {args.patient_id}...")
+    logging.info("Generowanie danych z %s dni dla pacjenta %s ...", args.days, args.patient_id)
 
     end_time = datetime.now(timezone.utc)
     current_time = end_time - timedelta(days=args.days)
@@ -164,16 +168,19 @@ def run_batch(args):
     file_size_bytes = os.path.getsize(filename)
     file_size_mb = file_size_bytes / (1024 * 1024)
 
-    logging.info(f"Wysyłam plik wsadowy ({filename}, rozmiar: {file_size_mb:.2f} MB) do serwera: {batch_url}")
+    logging.info(f"Wysyłam plik wsadowy ({filename}, rozmiar: "
+                 f"{file_size_mb:.2f} MB) do serwera: {batch_url}")
     try:
         with open(filename, 'rb') as f:
             files = {'file': (filename, f, 'application/x-ndjson')}
             response = requests.post(batch_url, files=files)
 
         if response.status_code in [200, 201, 202, 203, 204]:
-            logging.info(f"Plik pomyślnie przyjęty przez serwer. Status: {response.status_code}")
+            logging.info(f"Plik pomyślnie przyjęty przez serwer. "
+                         f"Status: {response.status_code}")
         else:
-            logging.error(f"Błąd wysyłania. Serwer zwrócił: {response.status_code} - {response.text}")
+            logging.error(f"Błąd wysyłania. Serwer zwrócił: "
+                          f"{response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         logging.error(f"Nie można połączyć z {batch_url}. Błąd: {e}")
 

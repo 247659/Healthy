@@ -22,7 +22,8 @@ async def main():
 
     await trainer.train_global_lstm()
 
-    print("\n✅ Trening zakończony! Zrestartuj 'ai_worker.py', aby załadował nowy model LSTM do RAM.")
+    print("\n✅ Trening zakończony! Zrestartuj 'ai_worker.py', aby "
+          "załadował nowy model LSTM do RAM.")
 
 
 if __name__ == "__main__":
