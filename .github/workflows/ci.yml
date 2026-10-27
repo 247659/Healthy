@@ -187,10 +187,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: backend-java
-            context: ./backend
+          - name: backend-api-gateway
+            context: ./backend/api-gateway
+          - name: backend-auth
+            context: ./backend/auth
+          - name: backend-config
+            context: ./backend/config
+          - name: backend-eureka
+            context: ./backend/eureka
+          - name: backend-integration
+            context: ./backend/integration
+          - name: backend-medical-staff
+            context: ./backend/medical-staff
+          - name: backend-notification
+            context: ./backend/notification
+          - name: backend-patients
+            context: ./backend/patients
+          - name: backend-visits-service
+            context: ./backend/visits-service
+          - name: backend-vital-signs-service
+            context: ./backend/vital-signs-service
+
           - name: backend-python
             context: ./backend/machine-learing
+            
           - name: frontend-web
             context: ./frontend-web
 
