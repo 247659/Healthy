@@ -9,26 +9,12 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import Svg, { Path, Circle, Line } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Dodany import
 import { authService } from '../api/authClient.ts';
 import { LoginRequest, Token } from '../types/auth.ts';
 import axios from 'axios';
-
-// --- IKONY ---
-interface IconProps { color?: string; size?: number; }
-const EyeIcon = ({ color = "#9CA3AF", size = 24 }: IconProps) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-        <Circle cx="12" cy="12" r="3" />
-    </Svg>
-);
-const EyeOffIcon = ({ color = "#9CA3AF", size = 24 }: IconProps) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-        <Line x1="1" y1="1" x2="23" y2="23" />
-    </Svg>
-);
+import { EyeIcon, EyeOffIcon } from '../components/icons/EyeIcons.tsx';
+import { globalStyles } from '../styles/globalStyles.ts';
 
 interface LoginScreenProps {
     onNavigateToRegister: () => void;
@@ -83,76 +69,94 @@ export const LoginScreen = ({ onNavigateToRegister, onLoginSuccess }: LoginScree
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={styles.formContainer}>
-                <View style={styles.headerContainer}>
-                    <Text style={styles.brandName}>Healthy<Text style={styles.brandDot}>.</Text></Text>
-                    <Text style={styles.subtitle}>Witaj ponownie! Zaloguj się, aby kontynuować.</Text>
-                </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.formContainer}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.brandName}>
+              Healthy<Text style={styles.brandDot}>.</Text>
+            </Text>
+            <Text style={styles.subtitle}>
+              Witaj ponownie! Zaloguj się, aby kontynuować.
+            </Text>
+          </View>
 
-                {errorMessage ? (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{errorMessage}</Text>
-                    </View>
-                ) : null}
-
-                <View style={styles.inputContainer}>
-                    {/* Grupa Adres e-mail */}
-                    <View>
-                        <Text style={styles.inputLabel}>Adres e-mail</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Wpisz swój e-mail"
-                            placeholderTextColor="#9CA3AF"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={email}
-                            onChangeText={setEmail}
-                            editable={!isLoading}
-                        />
-                    </View>
-
-                    {/* Grupa Hasło */}
-                    <View>
-                        <Text style={styles.inputLabel}>Hasło</Text>
-                        {/* Pole hasła z ikoną oczka */}
-                        <View style={styles.passwordContainer}>
-                            <TextInput
-                                style={styles.passwordInput}
-                                placeholder="Wpisz swoje hasło"
-                                placeholderTextColor="#9CA3AF"
-                                secureTextEntry={!showPassword}
-                                value={password}
-                                onChangeText={setPassword}
-                                editable={!isLoading}
-                            />
-                            <TouchableOpacity
-                                style={styles.eyeIcon}
-                                onPress={() => setShowPassword(!showPassword)}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            >
-                                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-
-                <TouchableOpacity style={styles.forgotPasswordButton}>
-                    <Text style={styles.forgotPasswordText}>Zapomniałeś hasła?</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} disabled={isLoading}>
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Zaloguj się</Text>}
-                </TouchableOpacity>
-
-                <View style={styles.footerContainer}>
-                    <Text style={styles.footerText}>Nie masz jeszcze konta? </Text>
-                    <TouchableOpacity onPress={onNavigateToRegister} disabled={isLoading}>
-                        <Text style={styles.footerLink}>Zarejestruj się</Text>
-                    </TouchableOpacity>
-                </View>
+          {errorMessage ? (
+            <View style={globalStyles.errorContainer}>
+              <Text style={globalStyles.errorText}>{errorMessage}</Text>
             </View>
-        </KeyboardAvoidingView>
+          ) : null}
+
+          <View style={globalStyles.inputContainer}>
+            {/* Grupa Adres e-mail */}
+            <View>
+              <Text style={globalStyles.inputLabel}>Adres e-mail</Text>
+              <TextInput
+                style={globalStyles.input}
+                placeholder="Wpisz swój e-mail"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                editable={!isLoading}
+              />
+            </View>
+
+            {/* Grupa Hasło */}
+            <View>
+              <Text style={globalStyles.inputLabel}>Hasło</Text>
+              {/* Pole hasła z ikoną oczka */}
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Wpisz swoje hasło"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeIcon}
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.forgotPasswordButton}>
+            <Text style={styles.forgotPasswordText}>Zapomniałeś hasła?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Zaloguj się</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>Nie masz jeszcze konta? </Text>
+            <TouchableOpacity
+              onPress={onNavigateToRegister}
+              disabled={isLoading}
+            >
+              <Text style={styles.footerLink}>Zarejestruj się</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     );
 };
 
@@ -163,13 +167,6 @@ const styles = StyleSheet.create({
     brandName: { fontSize: 46, fontWeight: '900', color: '#1F2937', letterSpacing: -1 },
     brandDot: { color: '#10B981' },
     subtitle: { fontSize: 16, color: '#6B7280', marginTop: 8, textAlign: 'center' },
-
-    errorContainer: { backgroundColor: '#FEE2E2', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#FCA5A5' },
-    errorText: { color: '#EF4444', fontSize: 14, textAlign: 'center', fontWeight: '500' },
-
-    inputContainer: { gap: 16 },
-    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 },
-    input: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, fontSize: 16, color: '#1F2937' },
 
     passwordContainer: { position: 'relative', justifyContent: 'center' },
     passwordInput: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, paddingRight: 50, fontSize: 16, color: '#1F2937' },
