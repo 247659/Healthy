@@ -46,7 +46,7 @@ jobs:
         run: >
           mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
           -Dsonar.projectKey=healthmonitor-java-backend
-          -Dsonar.organization=HealthyTeam
+          -Dsonar.organization=healthyteam
           -Dsonar.qualitygate.wait=true
 
       - name: Publishing test reports in the GitHub UI
