@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel
+
 
 class BloodPressure(BaseModel):
     systolic: int
@@ -21,15 +22,15 @@ class VitalsPayload(BaseModel):
     isAnomaly: Optional[bool] = False
 
     @property
-    def heartRate(self) -> int:
+    def heart_rate(self) -> int:
         return self.measurements.heartRate
 
     @property
-    def systolicBp(self) -> int:
+    def systolic_bp(self) -> int:
         return self.measurements.bloodPressure.systolic
 
     @property
-    def diastolicBp(self) -> int:
+    def diastolic_bp(self) -> int:
         return self.measurements.bloodPressure.diastolic
 
     @property

@@ -61,10 +61,10 @@ export const ProfileEditScreen = ({ route, navigation }: any) => {
         const weights = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3];
         let sum = 0;
         for (let i = 0; i < 10; i++) {
-            sum += parseInt(pesel[i], 10) * weights[i];
+            sum += Number.parseInt(pesel[i], 10) * weights[i];
         }
         const controlDigit = (10 - (sum % 10)) % 10;
-        return controlDigit === parseInt(pesel[10], 10);
+        return controlDigit === Number.parseInt(pesel[10], 10);
     };
 
     const validatePhoneNumber = (phone: string): boolean => {

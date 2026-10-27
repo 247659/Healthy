@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import DatePicker from 'react-native-date-picker';
 import Svg, { Path, Polyline, Line } from 'react-native-svg';
+import { globalStyles } from '../styles/globalStyles.ts';
 
 // Importujemy naszego klienta API
 import { patientClient } from '../api/patientClient';
@@ -57,11 +58,11 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onLogout }: 
         let sum = 0;
 
         for (let i = 0; i < 10; i++) {
-            sum += parseInt(pesel[i], 10) * weights[i];
+            sum += Number.parseInt(pesel[i], 10) * weights[i];
         }
 
         const controlDigit = (10 - (sum % 10)) % 10;
-        return controlDigit === parseInt(pesel[10], 10);
+        return controlDigit === Number.parseInt(pesel[10], 10);
     };
 
     const validatePhoneNumber = (phone: string): boolean => {
@@ -119,156 +120,186 @@ export const ProfileSetupScreen = ({ patientData, onProfileUpdated, onLogout }: 
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* WYŚRODKOWANY NAGŁÓWEK Z IKONĄ WYLOGOWANIA PO PRAWEJ */}
+          <View style={styles.headerRow} pointerEvents="box-none">
+            <Text style={styles.headerTitle}>Uzupełnij profil</Text>
+            <TouchableOpacity
+              style={styles.headerLogoutButton}
+              onPress={onLogout}
+              activeOpacity={0.7}
+              disabled={isLoading || !!successMessage}
+            >
+              <LogoutIcon size={20} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
 
-                {/* WYŚRODKOWANY NAGŁÓWEK Z IKONĄ WYLOGOWANIA PO PRAWEJ */}
-                <View style={styles.headerRow} pointerEvents="box-none">
-                    <Text style={styles.headerTitle}>Uzupełnij profil</Text>
-                    <TouchableOpacity style={styles.headerLogoutButton} onPress={onLogout} activeOpacity={0.7} disabled={isLoading || !!successMessage}>
-                        <LogoutIcon size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                </View>
+          <Text style={styles.subtitle}>
+            Dzięki tym danym będziemy mogli lepiej dbać o Twoje zdrowie.
+          </Text>
 
-                <Text style={styles.subtitle}>Dzięki tym danym będziemy mogli lepiej dbać o Twoje zdrowie.</Text>
+          {/* BANERY BŁĘDÓW I SUKCESÓW */}
+          {errorMessage ? (
+            <View style={globalStyles.errorContainer}>
+              <Text style={globalStyles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
-                {/* BANERY BŁĘDÓW I SUKCESÓW */}
-                {errorMessage ? (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{errorMessage}</Text>
-                    </View>
-                ) : null}
+          {successMessage ? (
+            <View style={globalStyles.successContainer}>
+              <Text style={globalStyles.successText}>{successMessage}</Text>
+            </View>
+          ) : null}
 
-                {successMessage ? (
-                    <View style={styles.successContainer}>
-                        <Text style={styles.successText}>{successMessage}</Text>
-                    </View>
-                ) : null}
-
-                <View style={styles.inputContainer}>
-
-                    {/* Data urodzenia */}
-                    <View>
-                        <Text style={styles.inputLabel}>Data urodzenia</Text>
-                        <TouchableOpacity
-                            style={styles.datePickerButton}
-                            onPress={() => setOpenDateModal(true)}
-                            disabled={isLoading || !!successMessage}
-                        >
-                            <Text style={[styles.datePickerText, !formData.dateOfBirth && styles.placeholderText]}>
-                                {formData.dateOfBirth ? formData.dateOfBirth : "Wybierz datę"}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <DatePicker
-                        modal
-                        open={openDateModal}
-                        date={date}
-                        mode="date"
-                        confirmText="Wybierz"
-                        cancelText="Anuluj"
-                        title="Wybierz datę urodzenia"
-                        maximumDate={new Date()}
-                        onConfirm={(selectedDate) => {
-                            setOpenDateModal(false);
-                            setDate(selectedDate);
-                            // Pobieramy YYYY-MM-DD unikając stref czasowych, bazując na lokalnym wyborze
-                            const offset = selectedDate.getTimezoneOffset();
-                            const adjustedDate = new Date(selectedDate.getTime() - (offset * 60 * 1000));
-                            const formattedDate = adjustedDate.toISOString().split('T')[0];
-                            setFormData({...formData, dateOfBirth: formattedDate});
-                        }}
-                        onCancel={() => {
-                            setOpenDateModal(false);
-                        }}
-                    />
-
-                    {/* PESEL */}
-                    <View>
-                        <Text style={styles.inputLabel}>Numer PESEL</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="11 cyfr"
-                            placeholderTextColor="#9CA3AF"
-                            keyboardType="numeric"
-                            maxLength={11}
-                            value={formData.pesel}
-                            onChangeText={(v) => setFormData({...formData, pesel: v.replace(/\D/g, '')})}
-                            editable={!isLoading && !successMessage}
-                        />
-                    </View>
-
-                    {/* Numer telefonu */}
-                    <View>
-                        <Text style={styles.inputLabel}>Numer telefonu</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="9 cyfr, np. 123456789"
-                            placeholderTextColor="#9CA3AF"
-                            keyboardType="phone-pad"
-                            maxLength={12}
-                            value={formData.phoneNumber}
-                            onChangeText={(v) => setFormData({...formData, phoneNumber: v})}
-                            editable={!isLoading && !successMessage}
-                        />
-                    </View>
-
-                    {/* Sekcja adresu */}
-                    <Text style={styles.sectionLabel}>Adres zamieszkania</Text>
-
-                    {/* Ulica */}
-                    <View>
-                        <Text style={styles.inputLabel}>Ulica i numer domu/mieszkania</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="np. Kwiatowa 12/4"
-                            placeholderTextColor="#9CA3AF"
-                            value={formData.street}
-                            onChangeText={(v) => setFormData({...formData, street: v})}
-                            editable={!isLoading && !successMessage}
-                        />
-                    </View>
-
-                    {/* Kod pocztowy i Miasto */}
-                    <View style={styles.row}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.inputLabel}>Kod pocztowy</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="00-000"
-                                placeholderTextColor="#9CA3AF"
-                                maxLength={6}
-                                value={formData.postalCode}
-                                onChangeText={(v) => setFormData({...formData, postalCode: v})}
-                                editable={!isLoading && !successMessage}
-                            />
-                        </View>
-                        <View style={{ flex: 2 }}>
-                            <Text style={styles.inputLabel}>Miejscowość</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Nazwa miejscowości"
-                                placeholderTextColor="#9CA3AF"
-                                value={formData.city}
-                                onChangeText={(v) => setFormData({...formData, city: v})}
-                                editable={!isLoading && !successMessage}
-                            />
-                        </View>
-                    </View>
-                </View>
-
-                {/* Główny przycisk */}
-                <TouchableOpacity
-                    style={[styles.primaryButton, (isLoading || !!successMessage) && styles.primaryButtonDisabled]}
-                    onPress={handleSubmit}
-                    disabled={isLoading || !!successMessage}
+          <View style={globalStyles.inputContainer}>
+            {/* Data urodzenia */}
+            <View>
+              <Text style={globalStyles.inputLabel}>Data urodzenia</Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setOpenDateModal(true)}
+                disabled={isLoading || !!successMessage}
+              >
+                <Text
+                  style={[
+                    styles.datePickerText,
+                    !formData.dateOfBirth && styles.placeholderText,
+                  ]}
                 >
-                    {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Zapisz dane</Text>}
-                </TouchableOpacity>
+                  {formData.dateOfBirth ? formData.dateOfBirth : 'Wybierz datę'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-            </ScrollView>
-        </KeyboardAvoidingView>
+            <DatePicker
+              modal
+              open={openDateModal}
+              date={date}
+              mode="date"
+              confirmText="Wybierz"
+              cancelText="Anuluj"
+              title="Wybierz datę urodzenia"
+              maximumDate={new Date()}
+              onConfirm={selectedDate => {
+                setOpenDateModal(false);
+                setDate(selectedDate);
+                // Pobieramy YYYY-MM-DD unikając stref czasowych, bazując na lokalnym wyborze
+                const offset = selectedDate.getTimezoneOffset();
+                const adjustedDate = new Date(
+                  selectedDate.getTime() - offset * 60 * 1000,
+                );
+                const formattedDate = adjustedDate.toISOString().split('T')[0];
+                setFormData({ ...formData, dateOfBirth: formattedDate });
+              }}
+              onCancel={() => {
+                setOpenDateModal(false);
+              }}
+            />
+
+            {/* PESEL */}
+            <View>
+              <Text style={globalStyles.inputLabel}>Numer PESEL</Text>
+              <TextInput
+                style={globalStyles.input}
+                placeholder="11 cyfr"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+                maxLength={11}
+                value={formData.pesel}
+                onChangeText={v =>
+                  setFormData({ ...formData, pesel: v.replace(/\D/g, '') })
+                }
+                editable={!isLoading && !successMessage}
+              />
+            </View>
+
+            {/* Numer telefonu */}
+            <View>
+              <Text style={globalStyles.inputLabel}>Numer telefonu</Text>
+              <TextInput
+                style={globalStyles.input}
+                placeholder="9 cyfr, np. 123456789"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="phone-pad"
+                maxLength={12}
+                value={formData.phoneNumber}
+                onChangeText={v => setFormData({ ...formData, phoneNumber: v })}
+                editable={!isLoading && !successMessage}
+              />
+            </View>
+
+            {/* Sekcja adresu */}
+            <Text style={styles.sectionLabel}>Adres zamieszkania</Text>
+
+            {/* Ulica */}
+            <View>
+              <Text style={globalStyles.inputLabel}>
+                Ulica i numer domu/mieszkania
+              </Text>
+              <TextInput
+                style={globalStyles.input}
+                placeholder="np. Kwiatowa 12/4"
+                placeholderTextColor="#9CA3AF"
+                value={formData.street}
+                onChangeText={v => setFormData({ ...formData, street: v })}
+                editable={!isLoading && !successMessage}
+              />
+            </View>
+
+            {/* Kod pocztowy i Miasto */}
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={globalStyles.inputLabel}>Kod pocztowy</Text>
+                <TextInput
+                  style={globalStyles.input}
+                  placeholder="00-000"
+                  placeholderTextColor="#9CA3AF"
+                  maxLength={6}
+                  value={formData.postalCode}
+                  onChangeText={v =>
+                    setFormData({ ...formData, postalCode: v })
+                  }
+                  editable={!isLoading && !successMessage}
+                />
+              </View>
+              <View style={{ flex: 2 }}>
+                <Text style={globalStyles.inputLabel}>Miejscowość</Text>
+                <TextInput
+                  style={globalStyles.input}
+                  placeholder="Nazwa miejscowości"
+                  placeholderTextColor="#9CA3AF"
+                  value={formData.city}
+                  onChangeText={v => setFormData({ ...formData, city: v })}
+                  editable={!isLoading && !successMessage}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Główny przycisk */}
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              (isLoading || !!successMessage) && styles.primaryButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={isLoading || !!successMessage}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Zapisz dane</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
 };
 
@@ -300,39 +331,6 @@ const styles = StyleSheet.create({
     },
 
     subtitle: { fontSize: 16, color: '#6B7280', marginBottom: 32, textAlign: 'center' },
-
-    errorContainer: {
-        backgroundColor: '#FEE2E2',
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#FCA5A5',
-    },
-    errorText: {
-        color: '#EF4444',
-        fontSize: 14,
-        textAlign: 'center',
-        fontWeight: '500',
-    },
-    successContainer: {
-        backgroundColor: '#D1FAE5',
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#6EE7B7',
-    },
-    successText: {
-        color: '#065F46',
-        fontSize: 14,
-        textAlign: 'center',
-        fontWeight: '600',
-    },
-
-    inputContainer: { gap: 16, marginBottom: 32 },
-    inputLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginBottom: 6, marginLeft: 4 },
-    input: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, fontSize: 16, color: '#1F2937' },
 
     datePickerButton: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 18, justifyContent: 'center' },
     datePickerText: { fontSize: 16, color: '#1F2937' },

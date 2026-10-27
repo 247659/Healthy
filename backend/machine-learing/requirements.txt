@@ -11,3 +11,4 @@ keras~=3.14.1
 tensorflow
 aiohttp
 aiocsv==1.4.1
+keras-nightly
