@@ -1,6 +1,7 @@
 package healthmonitor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import healthmonitor.vitals.config.SecurityConfig;
 import healthmonitor.vitals.controller.VitalSignsController;
 import healthmonitor.vitals.dto.VitalSignsDto;
 import healthmonitor.vitals.dto.VitalThresholdDto;
@@ -8,7 +9,9 @@ import healthmonitor.vitals.service.VitalsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,10 +21,12 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VitalSignsController.class)
+@Import(SecurityConfig.class)
 class VitalSignsControllerIntegrationTest {
 
     @Autowired
@@ -40,6 +45,10 @@ class VitalSignsControllerIntegrationTest {
                 .thenReturn(List.of(new VitalSignsDto()));
 
         mockMvc.perform(get("/vital-signs/patient/{patientId}", patientId)
+                        .with(jwt()
+                                .jwt(jwt -> jwt.subject(patientId))
+                                .authorities(new SimpleGrantedAuthority("ROLE_PATIENT"))
+                        )
                         .param("from", Instant.now().minusSeconds(3600).toString())
                         .param("to", Instant.now().toString()))
                 .andExpect(status().isOk())
@@ -52,7 +61,12 @@ class VitalSignsControllerIntegrationTest {
         VitalThresholdDto dto = new VitalThresholdDto(80, 70, 95, 120, BigDecimal.valueOf(36.6));
         when(vitalsService.getByPatientId(patientId)).thenReturn(dto);
 
-        mockMvc.perform(get("/vital-signs/threshold/{patientId}", patientId))
+        mockMvc.perform(get("/vital-signs/threshold/{patientId}", patientId)
+                        .with(jwt()
+                                .jwt(jwt -> jwt.subject(patientId))
+                                .authorities(new SimpleGrantedAuthority("ROLE_PATIENT"))
+                        )
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.systolicBp").value(120))
                 .andExpect(jsonPath("$.heartRate").value(70));
@@ -65,6 +79,10 @@ class VitalSignsControllerIntegrationTest {
         when(vitalsService.update(eq(patientId), any(VitalThresholdDto.class))).thenReturn(request);
 
         mockMvc.perform(put("/vital-signs/threshold/{patientId}", patientId)
+                        .with(jwt()
+                                .jwt(jwt -> jwt.subject(patientId))
+                                .authorities(new SimpleGrantedAuthority("ROLE_PATIENT"))
+                        )
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())

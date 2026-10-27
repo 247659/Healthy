@@ -6,6 +6,9 @@ import healthmonitor.vitals.service.VitalsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -20,10 +23,11 @@ public class VitalSignsController {
     private final VitalsService vitalsService;
 
     @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT') and #jwt.subject == #patientId")
     public ResponseEntity<List<VitalSignsDto>> getHistory(@PathVariable String patientId,
                                                           @RequestParam(required = false) Instant from,
-                                                          @RequestParam(required = false) Instant to
-    ) {
+                                                          @RequestParam(required = false) Instant to,
+                                                          @AuthenticationPrincipal Jwt jwt) {
         if (to == null) to = Instant.now();
         if (from == null) from = to.minus(Duration.ofDays(1));
         List<VitalSignsDto> history = vitalsService.getPatientHistory(patientId, from, to);
@@ -31,12 +35,15 @@ public class VitalSignsController {
     }
 
     @GetMapping("/threshold/{patientId}")
-    public ResponseEntity<VitalThresholdDto> getByPatientId(@PathVariable String patientId) {
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT') and #jwt.subject == #patientId")
+    public ResponseEntity<VitalThresholdDto> getByPatientId(@PathVariable String patientId, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(vitalsService.getByPatientId(patientId));
     }
 
     @PutMapping("/threshold/{patientId}")
-    public ResponseEntity<VitalThresholdDto> update(@PathVariable String patientId, @Valid @RequestBody VitalThresholdDto request) {
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT') and #jwt.subject == #patientId")
+    public ResponseEntity<VitalThresholdDto> update(@PathVariable String patientId, @Valid @RequestBody VitalThresholdDto request,
+                                                    @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(vitalsService.update(patientId, request));
     }
 }

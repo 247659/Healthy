@@ -59,11 +59,11 @@ public class KeycloakUserService {
     }
 
     public TokenResponseDto loginPatient(String email, String password) {
-        return login(email, password, "PATIENT");
+        return login(email, password, "ROLE_PATIENT");
     }
 
     public TokenResponseDto loginDoctor(String email, String password) {
-        return login(email, password, "DOCTOR");
+        return login(email, password, "ROLE_DOCTOR");
     }
 
     private TokenResponseDto login(String email, String password, String requiredRole) {

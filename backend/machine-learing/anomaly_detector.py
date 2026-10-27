@@ -75,7 +75,7 @@ class VitalsAnomalyDetector:
             "sys_bp": payload.systolic_bp,
             "dia_bp": payload.diastolic_bp,
             "temperature": payload.temperature,
-            "spO2": payload.sp_o2,
+            "spO2": payload.spO2,
         }
 
         raw_features = {k: v for k, v in raw_features.items() if v is not None}
@@ -130,7 +130,7 @@ class VitalsAnomalyDetector:
             sys_bp=payload.systolic_bp,
             dia_bp=payload.diastolic_bp,
             temperature=payload.temperature,
-            spO2=payload.sp_o2,
+            spO2=payload.spO2,
         )
 
         xai_stats = (

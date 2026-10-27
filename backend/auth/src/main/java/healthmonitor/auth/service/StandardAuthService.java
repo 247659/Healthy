@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 public class StandardAuthService implements AuthService {
 
     private final KeycloakUserService keycloakUserService;
-    static private final String PATIENT_ROLE = "patient";
+    static private final String PATIENT_ROLE = "ROLE_PATIENT";
 
     @Override
     public void registerPatient(PatientRegistrationDto patientDto) {

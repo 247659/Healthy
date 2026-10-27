@@ -96,12 +96,12 @@ class PatientSimulator:
             "patientId": self.patient_id,
             "timestamp": timestamp.isoformat(),
             "measurements": {
-                "heartRate": int(self.hr),
+                "heartRate": 120,
                 "bloodPressure": {
                     "systolic": int(self.sys_bp),
                     "diastolic": int(self.dia_bp)
                 },
-                "temperature": round(self.temp, 1),
+                "temperature": 38,
                 "spO2": int(self.spo2)
             },
             "isAnomaly": self.is_deteriorating

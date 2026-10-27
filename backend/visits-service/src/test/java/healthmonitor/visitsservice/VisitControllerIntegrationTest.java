@@ -1,6 +1,7 @@
 package healthmonitor.visitsservice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import healthmonitor.visitsservice.config.SecurityConfig;
 import healthmonitor.visitsservice.visits.controller.VisitController;
 import healthmonitor.visitsservice.visits.payload.request.VisitRequest;
 import healthmonitor.visitsservice.visits.payload.response.VisitResponse;
@@ -8,7 +9,9 @@ import healthmonitor.visitsservice.visits.service.VisitService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -20,10 +23,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(VisitController.class)
+@Import(SecurityConfig.class)
 class VisitControllerIntegrationTest {
 
     @Autowired
@@ -38,7 +43,9 @@ class VisitControllerIntegrationTest {
     @Test
     void getAll_ShouldReturnList() throws Exception {
         when(visitService.getAll()).thenReturn(List.of());
-        mockMvc.perform(get("/visits")).andExpect(status().isOk());
+        mockMvc.perform(get("/visits")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DOCTOR")))
+        ).andExpect(status().isOk());
     }
 
     @Test
@@ -46,7 +53,8 @@ class VisitControllerIntegrationTest {
         UUID id = UUID.randomUUID();
         when(visitService.getById(id)).thenReturn(new VisitResponse(id, UUID.randomUUID(), "p", LocalDateTime.now(), 30, "n", LocalDateTime.now()));
 
-        mockMvc.perform(get("/visits/" + id)).andExpect(status().isOk());
+        mockMvc.perform(get("/visits/" + id)
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DOCTOR")))).andExpect(status().isOk());
     }
 
     @Test
@@ -55,6 +63,7 @@ class VisitControllerIntegrationTest {
         when(visitService.save(any())).thenReturn(new VisitResponse(UUID.randomUUID(), req.medicalStaffId(), "p", LocalDateTime.now(), 30, "n", LocalDateTime.now()));
 
         mockMvc.perform(post("/visits")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DOCTOR")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
@@ -63,7 +72,8 @@ class VisitControllerIntegrationTest {
     @Test
     void delete_ShouldReturnNoContent() throws Exception {
         UUID id = UUID.randomUUID();
-        mockMvc.perform(delete("/visits/" + id)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/visits/" + id)
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DOCTOR")))).andExpect(status().isNoContent());
         verify(visitService).delete(id);
     }
 
@@ -74,6 +84,7 @@ class VisitControllerIntegrationTest {
         when(visitService.update(eq(id), any())).thenReturn(new VisitResponse(id, req.medicalStaffId(), "p", LocalDateTime.now(), 30, "n", LocalDateTime.now()));
 
         mockMvc.perform(put("/visits/" + id)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DOCTOR")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());

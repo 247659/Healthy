@@ -21,6 +21,7 @@ spring:
       server:
         webflux:
           default-filters:
+            - TokenRelay=
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
             - name: Retry
               args:

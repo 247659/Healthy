@@ -63,7 +63,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding binding(Queue patientRegistrationQueue, TopicExchange authExchange) {
-        return BindingBuilder.bind(patientRegistrationQueue).to(authExchange).with("user.registered.patient");
+        return BindingBuilder.bind(patientRegistrationQueue).to(authExchange).with("user.registered.ROLE_PATIENT");
     }
 
     @Bean
