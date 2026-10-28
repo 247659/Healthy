@@ -51,8 +51,26 @@
   "roles": {
     "realm": [
       {
-        "id": "f542b78d-ecc5-406f-a264-7fb1bc15560c",
-        "name": "PATIENT",
+        "id": "8dda62cf-8a2d-4938-8ffd-5823d89ebe37",
+        "name": "ROLE_DOCTOR",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "798db67b-d422-4637-b3a0-fe11763b4a46",
+        "attributes": {}
+      },
+      {
+        "id": "1a28e646-cb85-4aa9-889a-20eccda97c9a",
+        "name": "ROLE_PATIENT",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "798db67b-d422-4637-b3a0-fe11763b4a46",
+        "attributes": {}
+      },
+      {
+        "id": "eab9400f-703d-4256-a7b2-febc912b65ff",
+        "name": "ROLE_INTERNAL_SERVICE",
         "description": "",
         "composite": false,
         "clientRole": false,
@@ -315,6 +333,7 @@
       "auth-service-backend": [],
       "health-api": [],
       "iot-device-simulator": [],
+      "notifications-client": [],
       "security-admin-console": [],
       "admin-cli": [],
       "account-console": [],
@@ -329,6 +348,7 @@
           "attributes": {}
         }
       ],
+      "medical-staff-client": [],
       "account": [
         {
           "id": "b516290e-df4f-4f42-8e39-2b0c4a2d7827",
@@ -506,6 +526,40 @@
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [
+        "default-roles-healthmonitor-realm"
+      ],
+      "notBefore": 0,
+      "groups": []
+    },
+    {
+      "id": "80be3c64-0050-4ad8-b629-6d4eeb7da0a5",
+      "username": "service-account-medical-staff-client",
+      "emailVerified": false,
+      "enabled": true,
+      "createdTimestamp": 1793186805153,
+      "totp": false,
+      "serviceAccountClientId": "medical-staff-client",
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": [
+        "ROLE_INTERNAL_SERVICE",
+        "default-roles-healthmonitor-realm"
+      ],
+      "notBefore": 0,
+      "groups": []
+    },
+    {
+      "id": "02bde319-4f7f-43c0-87a8-5d790e6de907",
+      "username": "service-account-notifications-client",
+      "emailVerified": false,
+      "enabled": true,
+      "createdTimestamp": 1793186831271,
+      "totp": false,
+      "serviceAccountClientId": "notifications-client",
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": [
+        "ROLE_INTERNAL_SERVICE",
         "default-roles-healthmonitor-realm"
       ],
       "notBefore": 0,
@@ -693,7 +747,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "Q4T6eRN5lB520VuELv77mJW8BBZbwKVz",
+      "secret": "**********",
       "redirectUris": [
         ""
       ],
@@ -711,17 +765,18 @@
       "frontchannelLogout": true,
       "protocol": "openid-connect",
       "attributes": {
-        "realm_client": "false",
         "logout.confirmation.enabled": "false",
-        "oidc.ciba.grant.enabled": "false",
         "client.secret.creation.time": "1781524170",
-        "backchannel.logout.session.required": "true",
         "standard.token.exchange.enabled": "false",
         "oauth2.jwt.authorization.grant.enabled": "false",
         "frontchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "+",
         "oauth2.device.authorization.grant.enabled": "false",
-        "display.on.consent.screen": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "display.on.consent.screen": "false",
         "dpop.bound.access.tokens": "false"
       },
       "authenticationFlowBindingOverrides": {},
@@ -860,7 +915,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "xpbccFrxtYy4Fyrb5HdqK2EjjQ7hOPZR",
+      "secret": "**********",
       "redirectUris": [
         ""
       ],
@@ -884,7 +939,134 @@
         "backchannel.logout.session.required": "true",
         "standard.token.exchange.enabled": "false",
         "oauth2.jwt.authorization.grant.enabled": "false",
+        "post.logout.redirect.uris": "+",
         "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "service_account",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "c5af51ed-9b83-4b82-a5c9-db611cbfb5a2",
+      "clientId": "medical-staff-client",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "**********",
+      "redirectUris": [
+        ""
+      ],
+      "webOrigins": [
+        ""
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "logout.confirmation.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1793186805",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
+        "frontchannel.logout.session.required": "true",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "display.on.consent.screen": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "service_account",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "organization",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "id": "f83c3664-472f-4faf-9227-a257c9dc3510",
+      "clientId": "notifications-client",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "**********",
+      "redirectUris": [
+        "/*"
+      ],
+      "webOrigins": [
+        "/*"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "logout.confirmation.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1793186831",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
+        "frontchannel.logout.session.required": "true",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "display.on.consent.screen": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "dpop.bound.access.tokens": "false"
       },
@@ -1818,11 +2000,11 @@
         "config": {
           "allowed-protocol-mapper-types": [
             "oidc-address-mapper",
-            "saml-user-attribute-mapper",
-            "saml-role-list-mapper",
-            "oidc-sha256-pairwise-sub-mapper",
             "oidc-usermodel-attribute-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
+            "saml-user-attribute-mapper",
             "saml-user-property-mapper",
+            "saml-role-list-mapper",
             "oidc-full-name-mapper",
             "oidc-usermodel-property-mapper"
           ]
@@ -1848,14 +2030,14 @@
         "subComponents": {},
         "config": {
           "allowed-protocol-mapper-types": [
-            "oidc-address-mapper",
-            "saml-user-attribute-mapper",
-            "oidc-usermodel-property-mapper",
-            "oidc-sha256-pairwise-sub-mapper",
             "saml-user-property-mapper",
+            "oidc-address-mapper",
+            "oidc-sha256-pairwise-sub-mapper",
             "oidc-usermodel-attribute-mapper",
             "saml-role-list-mapper",
-            "oidc-full-name-mapper"
+            "oidc-full-name-mapper",
+            "saml-user-attribute-mapper",
+            "oidc-usermodel-property-mapper"
           ]
         }
       },

@@ -39,6 +39,11 @@ spring:
     listener:
       simple:
         observation-enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak-server:9090/realms/healthmonitor-realm
 
 logging:
   pattern:

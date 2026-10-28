@@ -2,6 +2,8 @@ package healthmonitor.performance;
 
 import healthmonitor.auth.TestAuthClient;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.IOException;
 import java.time.Duration;

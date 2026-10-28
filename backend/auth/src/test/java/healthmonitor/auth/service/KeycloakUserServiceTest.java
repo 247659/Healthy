@@ -56,18 +56,18 @@ class KeycloakUserServiceTest {
 
     @Test
     void loginPatient_Success() throws Exception {
-        String token = "header." + Base64.getUrlEncoder().encodeToString("{\"realm_access\":{\"roles\":[\"PATIENT\"]}}".getBytes()) + ".sig";
+        String token = "header." + Base64.getUrlEncoder().encodeToString("{\"realm_access\":{\"roles\":[\"ROLE_PATIENT\"]}}".getBytes()) + ".sig";
         when(keycloakClient.fetchToken(anyString(), anyString())).thenReturn(new TokenResponseDto(token, "ref"));
-        when(objectMapper.readTree(anyString())).thenReturn(new ObjectMapper().readTree("{\"realm_access\":{\"roles\":[\"PATIENT\"]}}"));
+        when(objectMapper.readTree(anyString())).thenReturn(new ObjectMapper().readTree("{\"realm_access\":{\"roles\":[\"ROLE_PATIENT\"]}}"));
 
         assertNotNull(keycloakUserService.loginPatient("p@t.com", "pass"));
     }
 
     @Test
     void loginPatient_IncorrectRole() throws Exception {
-        String token = "header." + Base64.getUrlEncoder().encodeToString("{\"realm_access\":{\"roles\":[\"DOCTOR\"]}}".getBytes()) + ".sig";
+        String token = "header." + Base64.getUrlEncoder().encodeToString("{\"realm_access\":{\"roles\":[\"ROLE_DOCTOR\"]}}".getBytes()) + ".sig";
         when(keycloakClient.fetchToken(anyString(), anyString())).thenReturn(new TokenResponseDto(token, "ref"));
-        when(objectMapper.readTree(anyString())).thenReturn(new ObjectMapper().readTree("{\"realm_access\":{\"roles\":[\"DOCTOR\"]}}"));
+        when(objectMapper.readTree(anyString())).thenReturn(new ObjectMapper().readTree("{\"realm_access\":{\"roles\":[\"ROLE_DOCTOR\"]}}"));
 
         assertThrows(AuthException.class, () -> keycloakUserService.loginPatient("p@t.com", "pass"));
     }

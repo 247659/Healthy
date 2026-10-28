@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -45,6 +46,9 @@ public class AuthServiceIntegrationTest {
 
     @MockitoBean
     private RegistrationPublisher registrationPublisher;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @BeforeAll
     static void startWireMock() {
@@ -92,8 +96,8 @@ public class AuthServiceIntegrationTest {
         wireMockServer.stubFor(post(urlEqualTo("/admin/realms/healthmonitor-realm/users"))
                 .willReturn(created().withHeader("Location", wireMockServer.baseUrl() + "/admin/realms/healthmonitor-realm/users/generated-uuid-123")));
 
-        wireMockServer.stubFor(get(urlEqualTo("/admin/realms/healthmonitor-realm/roles/PATIENT"))
-                .willReturn(okJson("{\"name\":\"PATIENT\"}")));
+        wireMockServer.stubFor(get(urlEqualTo("/admin/realms/healthmonitor-realm/roles/ROLE_PATIENT"))
+                .willReturn(okJson("{\"name\":\"ROLE_PATIENT\"}")));
 
         wireMockServer.stubFor(post(urlEqualTo("/admin/realms/healthmonitor-realm/users/generated-uuid-123/role-mappings/realm"))
                 .willReturn(noContent()));
@@ -101,7 +105,7 @@ public class AuthServiceIntegrationTest {
         assertDoesNotThrow(() -> authService.registerPatient(dto));
 
         // Weryfikacja delegacji do nowego Publishera
-        verify(registrationPublisher).publishUserRegistration(eq("patient"), any(UserRegisteredEvent.class));
+        verify(registrationPublisher).publishUserRegistration(eq("ROLE_PATIENT"), any(UserRegisteredEvent.class));
     }
 
     @Test
@@ -119,7 +123,7 @@ public class AuthServiceIntegrationTest {
     @Test
     void login_ShouldReturnTokens_WhenCredentialsAndRoleAreValid() throws Exception {
         LoginRequestDto loginRequest = new LoginRequestDto("patient@test.com", "password");
-        String mockAccessToken = "header.eyJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUEFUSUVOVCJdfX0.signature";
+        String mockAccessToken = "header.eyJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUk9MRV9QQVRJRU5UIl19fQ.signature";
 
         Map<String, String> keycloakResponse = Map.of(
                 "access_token", mockAccessToken,
@@ -139,8 +143,8 @@ public class AuthServiceIntegrationTest {
     @Test
     void loginDoctor_ShouldReturnTokens_WhenDoctorCredentialsAreValid() throws Exception {
         LoginRequestDto loginRequest = new LoginRequestDto("doctor@test.com", "password");
-        String mockAccessToken = "header.eyJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiRE9DVE9SIl19fQ.signature";
-
+        String mockAccessToken = "header.eyJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUk9MRV9ET0NUT1IiXX19fQ.signature";
+        
         Map<String, String> keycloakResponse = Map.of(
                 "access_token", mockAccessToken,
                 "refresh_token", "refresh-456"

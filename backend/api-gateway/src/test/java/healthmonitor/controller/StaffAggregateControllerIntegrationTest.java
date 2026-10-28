@@ -1,35 +1,35 @@
 package healthmonitor.controller;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import healthmonitor.config.TestSecurityConfig;
 import healthmonitor.payload.PatientClientResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.security.autoconfigure.actuate.web.reactive.ReactiveManagementWebSecurityAutoConfiguration;
-import org.springframework.boot.security.autoconfigure.web.reactive.ReactiveWebSecurityAutoConfiguration;
-import org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "eureka.client.enabled=false")
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "eureka.client.enabled=false"
+)
 @AutoConfigureWebTestClient
-@ImportAutoConfiguration(exclude = {ReactiveWebSecurityAutoConfiguration.class,
-        ReactiveOAuth2ResourceServerAutoConfiguration.class,
-        ReactiveManagementWebSecurityAutoConfiguration.class})
 @ActiveProfiles("test")
+@Import(TestSecurityConfig.class)
 class StaffAggregateControllerIntegrationTest {
 
-    private static final WireMockServer wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
+    private static final WireMockServer wireMockServer =
+            new WireMockServer(wireMockConfig().dynamicPort());
 
     @BeforeAll
     static void start() {
@@ -54,25 +54,44 @@ class StaffAggregateControllerIntegrationTest {
     void shouldReturnAssignedPatients() {
         String staffId = "staff1";
 
-        wireMockServer.stubFor(get(urlEqualTo("/api/v1/staff/" + staffId + "/patients"))
-                .willReturn(okJson("[\"pat1\", \"pat2\"]")));
+        wireMockServer.stubFor(
+                get(urlEqualTo("/api/v1/staff/" + staffId + "/patients"))
+                        .willReturn(okJson("[\"pat1\", \"pat2\"]"))
+        );
 
-        wireMockServer.stubFor(get(urlEqualTo("/api/v1/patients/pat1"))
-                .willReturn(okJson("{\"id\":\"pat1\", \"firstName\":\"John\"}")));
-        wireMockServer.stubFor(get(urlEqualTo("/api/v1/patients/pat2"))
-                .willReturn(okJson("{\"id\":\"pat2\", \"firstName\":\"Jane\"}")));
+        wireMockServer.stubFor(
+                get(urlEqualTo("/api/v1/patients/pat1"))
+                        .willReturn(okJson(
+                                "{\"id\":\"pat1\",\"firstName\":\"John\"}"
+                        ))
+        );
 
-        webTestClient.get()
-                .uri("/api/v1/gateway/dashboard/staff/{id}/patients/assigned", staffId)
+        wireMockServer.stubFor(
+                get(urlEqualTo("/api/v1/patients/pat2"))
+                        .willReturn(okJson(
+                                "{\"id\":\"pat2\",\"firstName\":\"Jane\"}"
+                        ))
+        );
+
+        webTestClient
+                .get()
+                .uri(
+                        "/api/v1/gateway/dashboard/staff/{id}/patients/assigned",
+                        staffId
+                )
+                .headers(headers ->
+                        headers.setBearerAuth("test-token"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBodyList(PatientClientResponse.class)
                 .hasSize(2)
                 .value(list -> {
-                    assertThat(list).hasSize(2);
-                    assertThat(list).extracting(patientClientResponse -> patientClientResponse != null ? patientClientResponse.firstName() : null)
+                    assertThat(list)
+                            .extracting(PatientClientResponse::firstName)
                             .containsExactlyInAnyOrder("John", "Jane");
-                    assertThat(list).extracting(patientClientResponse -> patientClientResponse != null ? patientClientResponse.id() : null)
+
+                    assertThat(list)
+                            .extracting(PatientClientResponse::id)
                             .containsExactlyInAnyOrder("pat1", "pat2");
                 });
     }

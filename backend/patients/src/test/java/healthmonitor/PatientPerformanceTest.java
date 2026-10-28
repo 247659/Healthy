@@ -3,8 +3,10 @@ package healthmonitor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -35,6 +37,9 @@ public class PatientPerformanceTest {
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("management.metrics.export.otlp.enabled", () -> "false");
     }
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @Test
     public void runPerformanceTest() throws IOException {

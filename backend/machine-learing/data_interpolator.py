@@ -26,7 +26,7 @@ class VitalsReading:
     sys_bp: float
     dia_bp: float
     temperature: float
-    sp_o2: float
+    spO2: float
     interpolated: bool = False
     rejected: bool = False
     reject_reason: str = ""
@@ -38,7 +38,7 @@ def _to_dict(r: VitalsReading) -> dict:
         "sys_bp": r.sys_bp,
         "dia_bp": r.dia_bp,
         "temperature": r.temperature,
-        "spO2": r.sp_o2,
+        "spO2": r.spO2,
     }
 
 
@@ -99,7 +99,7 @@ def interpolate_gap(
             sys_bp=round(float(interp_val[1]), 1),
             dia_bp=round(float(interp_val[2]), 1),
             temperature=round(float(interp_val[3]), 2),
-            sp_o2=round(float(interp_val[4]), 1),
+            spO2=round(float(interp_val[4]), 1),
             interpolated=True,
         )
         interpolated.append(r)
@@ -162,5 +162,5 @@ def payload_to_reading(payload, timestamp: Optional[datetime] = None) -> VitalsR
         sys_bp=payload.systolic_bp,
         dia_bp=payload.diastolic_bp,
         temperature=payload.temperature,
-        sp_o2=payload.sp_o2,
+        spO2=payload.spO2,
     )

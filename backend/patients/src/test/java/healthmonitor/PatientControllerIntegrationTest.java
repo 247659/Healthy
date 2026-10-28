@@ -1,15 +1,20 @@
 package healthmonitor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import healthmonitor.config.SecurityConfig;
 import healthmonitor.controller.PatientController;
 import healthmonitor.exception.exceptions.DuplicateResourceException;
 import healthmonitor.exception.exceptions.PatientNotFoundException;
 import healthmonitor.model.dto.PatientDto;
 import healthmonitor.service.PatientService;
+import healthmonitor.service.SecurityService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,10 +24,12 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(PatientController.class)
+@Import({SecurityConfig.class, SecurityService.class})
 public class PatientControllerIntegrationTest {
 
     @Autowired
@@ -33,6 +40,9 @@ public class PatientControllerIntegrationTest {
 
     @MockitoBean
     private PatientService patientService;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     private PatientDto createValidDto() {
         PatientDto dto = new PatientDto();
@@ -51,10 +61,24 @@ public class PatientControllerIntegrationTest {
         PatientDto dto = createValidDto();
         when(patientService.save(any(PatientDto.class))).thenReturn(dto);
 
-        mockMvc.perform(get("/patients/allPatients"))
+        mockMvc.perform(get("/patients/allPatients")
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_DOCTOR")
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void shouldReturnForbiddenWhenUserHasNoRequiredRole()
+            throws Exception {
+
+        mockMvc.perform(get("/patients/allPatients")
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_PATIENT")
+                        )))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -64,7 +88,10 @@ public class PatientControllerIntegrationTest {
 
         mockMvc.perform(post("/patients")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .content(objectMapper.writeValueAsString(dto))
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_PATIENT")
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.firstName").value("Jan"));
     }
@@ -74,7 +101,10 @@ public class PatientControllerIntegrationTest {
         PatientDto dto = createValidDto();
         when(patientService.getPatientById("123")).thenReturn(dto);
 
-        mockMvc.perform(get("/patients/123"))
+        mockMvc.perform(get("/patients/123")
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_DOCTOR")
+                        )))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.firstName").value("Jan"));
     }
@@ -82,11 +112,16 @@ public class PatientControllerIntegrationTest {
     @Test
     void shouldUpdatePatient() throws Exception {
         PatientDto dto = createValidDto();
-        when(patientService.updatePatient(eq("123"), any(PatientDto.class))).thenReturn(dto);
+        String patientId = "123";
+        when(patientService.updatePatient(eq(patientId), any(PatientDto.class))).thenReturn(dto);
 
-        mockMvc.perform(put("/patients/update/123")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+        mockMvc.perform(put("/patients/update/{id}", patientId)
+                        .with(jwt()
+                                .jwt(jwt -> jwt.subject(patientId))
+                                .authorities(new SimpleGrantedAuthority("ROLE_PATIENT"))
+                        )
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
     }
 
@@ -95,8 +130,12 @@ public class PatientControllerIntegrationTest {
         when(patientService.getPatientById("999"))
                 .thenThrow(new PatientNotFoundException("Not found"));
 
-        mockMvc.perform(get("/patients/999"))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/patients/999")
+                        .with(jwt()
+                                .jwt(jwt -> jwt.subject("999"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_DOCTOR"))
+                        ))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -105,6 +144,9 @@ public class PatientControllerIntegrationTest {
         invalidDto.setPesel("invalid");
 
         mockMvc.perform(post("/patients")
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_DOCTOR")
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest());
@@ -116,6 +158,9 @@ public class PatientControllerIntegrationTest {
         invalidDto.setFirstName("");
 
         mockMvc.perform(put("/patients/update/123")
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_PATIENT")
+                        ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest());
@@ -127,8 +172,11 @@ public class PatientControllerIntegrationTest {
                 .thenThrow(new DuplicateResourceException("Patient with this PESEL already exists"));
 
         mockMvc.perform(post("/patients")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(createValidDto())))
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_PATIENT")
+                        ))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createValidDto())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Patient with this PESEL already exists"))
                 .andExpect(jsonPath("$.status").value(409));

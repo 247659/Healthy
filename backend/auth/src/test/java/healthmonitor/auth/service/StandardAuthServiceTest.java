@@ -35,7 +35,7 @@ class StandardAuthServiceTest {
 
         // then
         verify(keycloakUserService, times(1))
-                .createUserInKeycloak("test@test.com", "pass", "Jan", "Kowalski", "patient");
+                .createUserInKeycloak("test@test.com", "pass", "Jan", "Kowalski", "ROLE_PATIENT");
     }
 
     @Test

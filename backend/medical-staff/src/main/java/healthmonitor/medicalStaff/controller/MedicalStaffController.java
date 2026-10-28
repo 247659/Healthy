@@ -9,6 +9,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,37 +19,42 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/staff")
-@CrossOrigin(origins = "*")
 public class MedicalStaffController {
     private final MedicalStaffService medicalStaffService;
 
     @GetMapping
+    @PreAuthorize("hasRole('PATIENT') or hasRole('DOCTOR')")
     public ResponseEntity<List<MedicalStaffResponse>> getAll() {
         return ResponseEntity.ok(medicalStaffService.getAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('PATIENT') or hasRole('DOCTOR')")
     public ResponseEntity<MedicalStaffResponse> getById(@PathVariable String id) {
         return ResponseEntity.ok(medicalStaffService.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<MedicalStaffResponse> save(@Valid @RequestBody MedicalStaffCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(medicalStaffService.save(request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable String id) {
+    @PreAuthorize("hasRole('DOCTOR') and @securityService.isOwner(#jwt, #id)")
+    public ResponseEntity<Void> delete(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
         medicalStaffService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MedicalStaffResponse> update(@PathVariable String id, @Valid @RequestBody MedicalStaffRequest request) {
+    @PreAuthorize("hasRole('DOCTOR') and @securityService.isOwner(#jwt, #id)")
+    public ResponseEntity<MedicalStaffResponse> update(@PathVariable String id, @Valid @RequestBody MedicalStaffRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(medicalStaffService.update(id, request));
     }
 
     @PostMapping("/{id}/assign/{patientId}")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<Void> assignPatient(@PathVariable String id, @PathVariable String patientId) {
         medicalStaffService.assignPatient(id, patientId);
         return ResponseEntity.noContent().build();
@@ -58,6 +66,7 @@ public class MedicalStaffController {
     }
 
     @GetMapping("/patients/{patientId}/doctors-list")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     public ResponseEntity<List<String>> getDoctorsForPatient(@PathVariable String patientId) {
         return ResponseEntity.ok(medicalStaffService.getDoctorsIdsByPatientId(patientId));
     }
@@ -77,6 +86,7 @@ public class MedicalStaffController {
         return ResponseEntity.ok(medicalStaffService.getDoctorsAssignedToPatient(patientId));
     }
     @DeleteMapping("/{id}/unassign/{patientId}")
+    @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<Void> unassignPatient(@PathVariable String id, @PathVariable String patientId) {
         medicalStaffService.unassignPatient(id, patientId);
         return ResponseEntity.noContent().build();
