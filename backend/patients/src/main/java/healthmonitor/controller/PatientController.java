@@ -21,7 +21,8 @@ public class PatientController {
     private final PatientService patientService;
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT') and @securityService.isOwner(#jwt, #id)")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('INTERNAL_SERVICE') or hasRole('PATIENT') " +
+            "and @securityService.isOwner(#jwt, #id)")
     public ResponseEntity<PatientDto> getPatientById(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(patientService.getPatientById(id));
     }

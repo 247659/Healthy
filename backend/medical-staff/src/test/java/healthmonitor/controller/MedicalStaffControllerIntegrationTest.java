@@ -144,7 +144,7 @@ class MedicalStaffControllerIntegrationTest {
         when(medicalStaffService.getDoctorsIdsByPatientId("pat-1")).thenReturn(List.of("doc-1", "doc-2"));
 
         mockMvc.perform(get("/staff/patients/pat-1/doctors-list")
-                .with(jwt()))
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_INTERNAL_SERVICE"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()").value(2))
                 .andExpect(jsonPath("$[0]").value("doc-1"));

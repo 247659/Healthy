@@ -4,6 +4,14 @@ import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,26 +26,56 @@ import java.util.concurrent.TimeoutException;
 @Configuration
 public class WebClientConfig {
 
+    private static final String CLIENT_REGISTRATION_ID = "keycloak-internal";
+
+    @Bean
+    public OAuth2AuthorizedClientManager authorizedClientManager(
+            ClientRegistrationRepository clientRegistrationRepository,
+            OAuth2AuthorizedClientService authorizedClientService) {
+
+        OAuth2AuthorizedClientProvider authorizedClientProvider =
+                OAuth2AuthorizedClientProviderBuilder.builder()
+                        .clientCredentials()
+                        .build();
+
+        AuthorizedClientServiceOAuth2AuthorizedClientManager authorizedClientManager =
+                new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+                        clientRegistrationRepository, authorizedClientService);
+        authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
+
+        return authorizedClientManager;
+    }
+
     @Bean
     @Profile("prod")
     @LoadBalanced
-    public WebClient.Builder loadBalancedWebClientBuilder() {
+    public WebClient.Builder loadBalancedWebClientBuilder(OAuth2AuthorizedClientManager authorizedClientManager) {
         return WebClient.builder()
+                .apply(oauth2Filter(authorizedClientManager).oauth2Configuration())
                 .filter(resilienceFilter());
     }
 
     @Bean
     @Profile("!prod")
-    public WebClient.Builder webClientBuilder() {
+    public WebClient.Builder webClientBuilder(OAuth2AuthorizedClientManager authorizedClientManager) {
         return WebClient.builder()
+                .apply(oauth2Filter(authorizedClientManager).oauth2Configuration())
                 .filter(resilienceFilter());
     }
 
+    private ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Filter(
+            OAuth2AuthorizedClientManager authorizedClientManager) {
+        ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
+                new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
+        oauth2Client.setDefaultClientRegistrationId(CLIENT_REGISTRATION_ID);
+        return oauth2Client;
+    }
+
     private ExchangeFilterFunction resilienceFilter() {
-        return ((request, next) -> {
-            boolean isIdempotent = request.method().name().equals("GET") ||
-                    request.method().name().equals("PUT") ||
-                    request.method().name().equals("DELETE");
+        return (request, next) -> {
+            boolean isIdempotent = request.method().equals(HttpMethod.GET) ||
+                    request.method().equals(HttpMethod.PUT) ||
+                    request.method().equals(HttpMethod.DELETE);
 
             Mono<ClientResponse> responseMono = next.exchange(request)
                     .flatMap(response -> {
@@ -53,7 +91,7 @@ public class WebClientConfig {
                         .filter(this::shouldRetry));
             }
             return responseMono;
-        });
+        };
     }
 
     private boolean shouldRetry(Throwable throwable) {

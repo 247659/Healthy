@@ -66,6 +66,7 @@ public class MedicalStaffController {
     }
 
     @GetMapping("/patients/{patientId}/doctors-list")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
     public ResponseEntity<List<String>> getDoctorsForPatient(@PathVariable String patientId) {
         return ResponseEntity.ok(medicalStaffService.getDoctorsIdsByPatientId(patientId));
     }
