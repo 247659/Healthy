@@ -4,8 +4,10 @@ import dasniko.testcontainers.keycloak.KeycloakContainer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -28,6 +30,9 @@ public class AuthIsolatedPerformanceTest {
     static KeycloakContainer keycloak = new KeycloakContainer("quay.io/keycloak/keycloak:26.0.0")
             .withRealmImportFile("realm-test.json")
             .withReuse(false);
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
