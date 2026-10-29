@@ -27,25 +27,13 @@ class WebSocketAlertNotifierTest {
     @Test
     void shouldSendNotificationToAllDoctorsInList() {
         Alert alert = Alert.builder().alertId(UUID.randomUUID().toString()).message("Test").build();
-        List<String> doctorIds = List.of("doc-1", "doc-2", "doc-3");
+        String doctorId = "doc-1";
 
-        webSocketAlertNotifier.notifyDoctor(mapToDto(alert), doctorIds);
+        webSocketAlertNotifier.notifyDoctor(mapToDto(alert), doctorId);
 
-        verify(messagingTemplate, times(1)).convertAndSendToUser("doc-1", "/queue/alerts", alert);
-        verify(messagingTemplate, times(1)).convertAndSendToUser("doc-2", "/queue/alerts", alert);
-        verify(messagingTemplate, times(1)).convertAndSendToUser("doc-3", "/queue/alerts", alert);
+        verify(messagingTemplate, times(1)).convertAndSendToUser("doc-1", "/queue/alerts", mapToDto(alert));
 
         verifyNoMoreInteractions(messagingTemplate);
-    }
-
-    @Test
-    void shouldNotSendAnything_WhenDoctorListIsEmpty() {
-        Alert alert = Alert.builder().alertId(UUID.randomUUID().toString()).message("Test").build();
-        List<String> emptyDoctorIds = List.of();
-
-        webSocketAlertNotifier.notifyDoctor(mapToDto(alert), emptyDoctorIds);
-
-        verify(messagingTemplate, never()).convertAndSendToUser(anyString(), anyString(), any());
     }
 
     private AlertDto mapToDto(Alert alert) {
