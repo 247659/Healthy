@@ -16,12 +16,15 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import ErrorIcon from "@mui/icons-material/Error";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import React, {useState} from "react";
+import {useNavigate} from "react-router-dom";
 import {useNotifications} from "../hooks/useNotifications.ts";
 import {usePatientStore} from "../store/patients-store.ts";
 
 const NotificationBell = () => {
     const {alerts, unreadCount, markAsRead} = useNotifications();
+    const navigate = useNavigate();
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
@@ -35,10 +38,9 @@ const NotificationBell = () => {
 
     const handleNotificationClose = () => {
         setAnchorEl(null);
-        setSelectedIndices([]); // Reset zaznaczenia po zamknięciu menu
+        setSelectedIndices([]);
     };
 
-    // Zaznaczanie / odznaczanie pojedynczego powiadomienia
     const handleToggleSelect = (index: number, event?: React.MouseEvent) => {
         if (event) {
             event.stopPropagation();
@@ -50,7 +52,6 @@ const NotificationBell = () => {
         );
     };
 
-    // Zaznaczanie / odznaczanie wszystkich powiadomień
     const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.checked) {
             setSelectedIndices(alerts.map((_, index) => index));
@@ -59,11 +60,27 @@ const NotificationBell = () => {
         }
     };
 
-    // Oznaczanie wybranych powiadomień jako przeczytane
     const handleMarkSelectedAsRead = () => {
         const selectedAlerts = selectedIndices.map(index => alerts[index].alertId);
         markAsRead(selectedAlerts);
         setSelectedIndices([]);
+    };
+
+    // Przejście do PatientDetails z przekazaniem pacjenta i ID wybranego alertu
+    const handleGoToPatientDetails = (event: React.MouseEvent, alertId: string, patientId: string) => {
+        event.stopPropagation();
+        const patient = assignedPatients.find((p) => p.id === patientId);
+        if (!patient) return;
+
+        handleNotificationClose();
+
+        // Podmień '/patient-details' na swoją ścieżkę z routera, jeśli jest inna
+        navigate(`/patient/${patientId}`, {
+            state: {
+                patient,
+                highlightAlertId: alertId
+            }
+        });
     };
 
     const isAllSelected = alerts.length > 0 && selectedIndices.length === alerts.length;
@@ -161,7 +178,7 @@ const NotificationBell = () => {
 
                         return (
                             <MenuItem
-                                key={index}
+                                key={alert.alertId || index}
                                 onClick={() => handleToggleSelect(index)}
                                 selected={isSelected}
                                 sx={{
@@ -214,6 +231,26 @@ const NotificationBell = () => {
                                             >
                                                 Ryzyko: {alert.riskScore.toFixed(2)} • {new Date(alert.timestamp).toLocaleTimeString()}
                                             </Typography>
+
+                                            {/* Przycisk przenoszący do PatientDetails */}
+                                            {patient && (
+                                                <Box sx={{mt: 1, display: 'flex', justifyContent: 'flex-end'}}>
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        endIcon={<ArrowForwardIcon fontSize="small"/>}
+                                                        onClick={(e) => handleGoToPatientDetails(e, alert.alertId, alert.patientId)}
+                                                        sx={{
+                                                            textTransform: 'none',
+                                                            fontSize: '0.75rem',
+                                                            py: 0.2,
+                                                            px: 1
+                                                        }}
+                                                    >
+                                                        Szczegóły alertu
+                                                    </Button>
+                                                </Box>
+                                            )}
                                         </React.Fragment>
                                     }
                                 />

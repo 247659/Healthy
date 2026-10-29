@@ -9,6 +9,10 @@ import healthmonitor.notifications.model.AlertEventMessage;
 import healthmonitor.notifications.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,11 +47,10 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
-    public List<AlertDto> getAllNotifications(String patientId, String userId) {
-        List<Alert> alerts = alertRepository.findByPatientIdAndDestination(patientId, userId);
-        return alerts.stream()
-                .map(this::mapToDto)
-                .toList();
+    public Page<AlertDto> getAllNotifications(String patientId, String userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        Page<Alert> alerts = alertRepository.findByPatientIdAndDestination(patientId, userId, pageable);
+        return alerts.map(this::mapToDto);
     }
 
     @Override

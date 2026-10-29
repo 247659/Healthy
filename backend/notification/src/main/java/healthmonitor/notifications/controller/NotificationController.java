@@ -1,8 +1,10 @@
 package healthmonitor.notifications.controller;
 
+import healthmonitor.notifications.model.AlertDto;
 import healthmonitor.notifications.model.MarkAsReadRequest;
 import healthmonitor.notifications.sevice.AlertService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,8 +30,11 @@ public class NotificationController {
 
     @GetMapping("/all/{patientId}")
     @PreAuthorize("hasRole('ROLE_PATIENT') or hasRole('ROLE_DOCTOR')")
-    public ResponseEntity<?> getAllNotifications(@PathVariable String patientId, @RequestParam String userId) {
-        return ResponseEntity.ok().body(alertService.getAllNotifications(patientId, userId));
+    public ResponseEntity<Page<AlertDto>> getAllNotifications(@PathVariable String patientId,
+                                                              @RequestParam String userId,
+                                                              @RequestParam(defaultValue = "0") int page,
+                                                              @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok().body(alertService.getAllNotifications(patientId, userId, page, size));
     }
 
     @PutMapping("/mark-as-read")

@@ -1,4 +1,4 @@
-import type {Notification} from "../types/notification.ts";
+import type {Notification, PageResponse} from "../types/notification.ts";
 import {api} from "./api.ts";
 
 export const notificationService = {
@@ -15,12 +15,14 @@ export const notificationService = {
         return response.data;
     },
 
-    getAllNotifications: async (patientId: string, userId: string): Promise<Notification[]> => {
-        const response = await api.get<Notification[]>(
+    getAllNotifications: async (patientId: string, userId: string, page: number = 0 , size: number = 8): Promise<PageResponse<Notification>> => {
+        const response = await api.get<PageResponse<Notification>>(
             `/notifications/all/${patientId}`,
             {
                 params: {
-                    userId
+                    userId: userId,
+                    page: page,
+                    size: size
                 }
             }
         );
