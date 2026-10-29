@@ -1,9 +1,7 @@
 package healthmonitor.notifications.communication;
 
-import healthmonitor.notifications.model.Alert;
-
-import java.util.List;
+import healthmonitor.notifications.model.AlertDto;
 
 public interface AlertNotifier {
-    void notifyDoctors(Alert alert, List<String> doctorIds);
+    void notifyDoctor(AlertDto alert, String doctorId);
 }

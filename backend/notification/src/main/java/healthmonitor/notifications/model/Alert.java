@@ -51,4 +51,6 @@ public class Alert {
 
     @Column(name = "isRead", nullable = false)
     private boolean isRead = false;
+
+    private String destination;
 }

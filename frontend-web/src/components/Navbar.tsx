@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from "../api/authClient.ts";
-import { useNotifications } from '../hooks/useNotifications';
 
 // --- Importy MUI ---
 import {
@@ -9,18 +7,10 @@ import {
     Toolbar,
     Typography,
     Button,
-    IconButton,
-    Badge,
-    Menu,
-    MenuItem,
     Box,
-    ListItemIcon,
-    ListItemText,
-    Divider
 } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import ErrorIcon from '@mui/icons-material/Error';
+import NotificationBell from "./NotificationBell.tsx";
+import {useAuthStore} from "../store/auth-store.ts";
 
 interface NavbarProps {
     token: string | null;
@@ -31,24 +21,11 @@ interface NavbarProps {
 
 const Navbar = ({ token, setToken, refreshToken, setRefreshToken }: NavbarProps) => {
     const navigate = useNavigate();
-    const { alerts, unreadCount, markAllAsRead } = useNotifications();
-
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const openNotifications = Boolean(anchorEl);
-
-    const handleNotificationClick = (event: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-        if (unreadCount > 0) {
-            markAllAsRead();
-        }
-    };
-
-    const handleNotificationClose = () => {
-        setAnchorEl(null);
-    };
+    const logout = useAuthStore(state => state.logout)
 
     const handleLogout = () => {
         authService.logout(refreshToken);
+        logout()
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         setToken(null);
@@ -100,88 +77,8 @@ const Navbar = ({ token, setToken, refreshToken, setRefreshToken }: NavbarProps)
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {token ? (
                         <>
-                            {/* --- DZWONEK POWIADOMIEŃ --- */}
-                            <IconButton
-                                onClick={handleNotificationClick}
-                                aria-controls={openNotifications ? 'notifications-menu' : undefined}
-                                aria-haspopup="true"
-                                aria-expanded={openNotifications ? 'true' : undefined}
-                                sx={{ color: '#64748b' }} // Szarawy kolor pasujący do jasnego motywu
-                            >
-                                <Badge badgeContent={unreadCount} color="error">
-                                    <NotificationsIcon />
-                                </Badge>
-                            </IconButton>
-
-                            {/* --- ROZWIJANA LISTA POWIADOMIEŃ --- */}
-                            <Menu
-                                id="notifications-menu"
-                                anchorEl={anchorEl}
-                                open={openNotifications}
-                                onClose={handleNotificationClose}
-                                slotProps={{
-                                    paper: {
-                                        elevation: 4,
-                                        sx: { width: 350, maxHeight: 400, mt: 1.5 }
-                                    }
-                                }}
-                                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                            >
-                                <Box sx={{ px: 2, py: 1 }}>
-                                    <Typography
-                                        variant="subtitle1"
-                                        sx = {{fontWeight: 'bold'}}
-                                    >
-                                        Powiadomienia
-                                    </Typography>
-                                </Box>
-                                <Divider />
-
-                                {alerts.length === 0 ? (
-                                    <MenuItem disabled sx={{ py: 3, justifyContent: 'center' }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Brak nowych powiadomień
-                                        </Typography>
-                                    </MenuItem>
-                                ) : (
-                                    alerts.map((alert, index) => {
-                                        const isCritical = alert.riskScore > 0.8;
-                                        return (
-                                            <MenuItem
-                                                key={index}
-                                                onClick={handleNotificationClose}
-                                                sx={{
-                                                    borderLeft: `4px solid ${isCritical ? '#dc2626' : '#f59e0b'}`,
-                                                    alignItems: 'flex-start',
-                                                    py: 1.5
-                                                }}
-                                            >
-                                                <ListItemIcon sx={{ mt: 0.5 }}>
-                                                    {isCritical ? <ErrorIcon sx={{ color: '#dc2626' }} /> : <WarningAmberIcon sx={{ color: '#f59e0b' }} />}
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                                                            Pacjent ID: {alert.patientId}
-                                                        </Typography>
-                                                    }
-                                                    secondary={
-                                                        <React.Fragment>
-                                                            <Typography variant="body2" color="text.primary" sx={{ display: 'block' }}>
-                                                                {alert.message}
-                                                            </Typography>
-                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                                                                Ryzyko: {alert.riskScore.toFixed(2)} • {new Date(alert.timestamp).toLocaleTimeString()}
-                                                            </Typography>
-                                                        </React.Fragment>
-                                                    }
-                                                />
-                                            </MenuItem>
-                                        );
-                                    })
-                                )}
-                            </Menu>
+                            {/*/!* --- DZWONEK POWIADOMIEŃ --- *!/*/}
+                            <NotificationBell />
 
                             {/* --- PRZYCISK PACJENCI (.nav-btn-secondary) --- */}
                             <Button

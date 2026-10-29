@@ -86,7 +86,7 @@ public class AlertServiceIntegrationTest {
         assertEquals("CRITICAL", savedAlert.getSeverity());
 
         verify(medicalStaffClient, times(1)).getDoctorIdsForPatient("pat-1");
-        verify(alertNotifier, times(1)).notifyDoctors(any(Alert.class), eq(List.of("doc-1", "doc-2")));
+        verify(alertNotifier, times(1)).notifyDoctor(mapToDto(savedAlert), eq(List.of("doc-1", "doc-2")));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class AlertServiceIntegrationTest {
         assertEquals("pat-no-docs", savedAlerts.getFirst().getPatientId());
 
         verify(medicalStaffClient, times(1)).getDoctorIdsForPatient("pat-no-docs");
-        verify(alertNotifier, times(0)).notifyDoctors(any(), any());
+        verify(alertNotifier, times(0)).notifyDoctor(any(), any());
     }
 
 
@@ -163,6 +163,19 @@ public class AlertServiceIntegrationTest {
                 .message("Test message")
                 .isRead(isRead)
                 .timestamp(timestamp)
+                .build();
+    }
+
+    private AlertDto mapToDto(Alert alert) {
+        return AlertDto.builder()
+                .alertId(alert.getAlertId())
+                .patientId(alert.getPatientId())
+                .riskScore(alert.getRiskScore())
+                .severity(alert.getSeverity())
+                .message(alert.getMessage())
+                .details(alert.getDetails())
+                .timestamp(alert.getTimestamp())
+                .isRead(alert.isRead())
                 .build();
     }
 }

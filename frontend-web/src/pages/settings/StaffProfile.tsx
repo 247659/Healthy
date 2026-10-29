@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { medicalStaffService } from "../api/staffClient.ts";
-import type { MedicalStaff } from "../types/medicalStaff.ts";
+import { medicalStaffService } from "../../api/staffClient.ts";
+import type { MedicalStaff } from "../../types/medicalStaff.ts";
 import {isAxiosError} from "axios";
 
 // Pomocniczy interfejs dla stanu specjalizacji

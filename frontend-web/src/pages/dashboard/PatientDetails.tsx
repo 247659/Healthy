@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { Patient } from "../types/patient.ts";
-import { vitalService } from "../api/vitalClient.ts";
-import { api } from "../api/api.ts";
-import type {AlertDto} from "../hooks/useNotifications.ts"; // Zaimportowano axios api do pobrania alertów
+import type { Patient } from "../../types/patient.ts";
+import { vitalService } from "../../api/vitalClient.ts";
+import {notificationService} from "../../api/notificationClient.ts";
+import {useAuthStore} from "../../store/auth-store.ts";
+import type {Notification} from "../../types/notification.ts";
 
 interface VitalSigns {
     patientId?: string;
@@ -23,6 +24,7 @@ interface VitalSigns {
 const PatientDetails = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const user = useAuthStore(state => state.user);
 
     const patient = location.state?.patient as Patient | undefined;
     const token = localStorage.getItem('access_token');
@@ -30,7 +32,7 @@ const PatientDetails = () => {
     const [historyVitals, setHistoryVitals] = useState<VitalSigns[]>([]);
     const [latestVitals, setLatestVitals] = useState<VitalSigns | null>(null);
     const [isVitalsLoading, setIsVitalsLoading] = useState(true);
-    const [alerts, setAlerts] = useState<AlertDto[]>([]);
+    const [alerts, setAlerts] = useState<Notification[]>([]);
 
     // --- DANE WYKRESÓW ---
     const chartData = useMemo(() => {
@@ -45,7 +47,7 @@ const PatientDetails = () => {
     }, [historyVitals]);
 
     useEffect(() => {
-        if (!patient || !token) {
+        if (!patient || !token || !user) {
             navigate('/patients');
             return;
         }
@@ -57,7 +59,7 @@ const PatientDetails = () => {
                 // Dodano pobieranie alertów z użyciem axiosa/Twojego klienta
                 const [historyRes, alertsRes] = await Promise.all([
                     vitalService.getHistory(patient.id),
-                    api.get(`/notifications/${patient.id}`) // Endpoint z powiadomieniami
+                    notificationService.getAllNotifications(patient.id, user.id)
                 ]);
 
                 // Obsługa historii
@@ -68,7 +70,7 @@ const PatientDetails = () => {
                 }
 
                 // Obsługa alertów
-                setAlerts(Array.isArray(alertsRes.data) ? alertsRes.data : []);
+                setAlerts(Array.isArray(alertsRes) ? alertsRes : []);
 
             } catch (err) {
                 console.error("Błąd pobierania danych:", err);

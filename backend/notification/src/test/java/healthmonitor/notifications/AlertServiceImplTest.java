@@ -92,7 +92,7 @@ class AlertServiceImplTest {
 
         // 2. Sprawdzamy, czy system pobrał lekarzy i wysłał powiadomienie
         verify(medicalStaffClient, times(1)).getDoctorIdsForPatient("patient-123");
-        verify(alertNotifier, times(1)).notifyDoctors(savedAlert, doctorIds);
+        verify(alertNotifier, times(1)).notifyDoctor(mapToDto(savedAlert), doctorIds);
     }
 
     @Test
@@ -109,7 +109,7 @@ class AlertServiceImplTest {
         verify(alertRepository, times(1)).save(any(Alert.class));
         verify(medicalStaffClient, times(1)).getDoctorIdsForPatient("patient-123");
         // Upewniamy się, że nie wysłano powiadomień przez WebSockety, bo lista była pusta
-        verify(alertNotifier, never()).notifyDoctors(any(), any());
+        verify(alertNotifier, never()).notifyDoctor(any(), any());
     }
 
     @Test
@@ -128,14 +128,14 @@ class AlertServiceImplTest {
         // then
         // Upewniamy się, że mimo błędu powiadomień, alert ZADZIAŁAŁ w kontekście zapisu do bazy
         verify(alertRepository, times(1)).save(any(Alert.class));
-        verify(alertNotifier, never()).notifyDoctors(any(), any());
+        verify(alertNotifier, never()).notifyDoctor(any(), any());
     }
 
     @Test
     void getNotificationsForPatient_ShouldReturnMappedUnreadAlerts() {
         // given
         String patientId = "patient-123";
-        when(alertRepository.findByPatientIdAndIsReadFalseOrderByTimestampDesc(patientId))
+        when(alertRepository.findByPatientIdAndAndDestinationAndIsReadFalseOrderByTimestampDesc(patientId))
                 .thenReturn(List.of(savedAlert));
 
         // when
@@ -152,7 +152,7 @@ class AlertServiceImplTest {
         assertEquals("HIGH", dto.getSeverity());
         assertFalse(dto.isRead());
 
-        verify(alertRepository, times(1)).findByPatientIdAndIsReadFalseOrderByTimestampDesc(patientId);
+        verify(alertRepository, times(1)).findByPatientIdAndAndDestinationAndIsReadFalseOrderByTimestampDesc(patientId);
     }
 
     @Test
@@ -165,7 +165,7 @@ class AlertServiceImplTest {
         oldReadAlert.setPatientId(patientId);
         oldReadAlert.setRead(true);
 
-        when(alertRepository.findByPatientId(patientId))
+        when(alertRepository.findByPatientIdAndDestination(patientId, ))
                 .thenReturn(List.of(savedAlert, oldReadAlert));
 
         // when
@@ -177,6 +177,19 @@ class AlertServiceImplTest {
         assertFalse(result.get(0).isRead()); // Pierwszy pochodzi z savedAlert (nieprzeczytany)
         assertTrue(result.get(1).isRead());  // Drugi z oldReadAlert (przeczytany)
 
-        verify(alertRepository, times(1)).findByPatientId(patientId);
+        verify(alertRepository, times(1)).findByPatientIdAndDestination(patientId, );
+    }
+
+    private AlertDto mapToDto(Alert alert) {
+        return AlertDto.builder()
+                .alertId(alert.getAlertId())
+                .patientId(alert.getPatientId())
+                .riskScore(alert.getRiskScore())
+                .severity(alert.getSeverity())
+                .message(alert.getMessage())
+                .details(alert.getDetails())
+                .timestamp(alert.getTimestamp())
+                .isRead(alert.isRead())
+                .build();
     }
 }

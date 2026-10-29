@@ -4,70 +4,30 @@ import type {Notification} from "../types/notification.ts";
 import {notificationService} from "../api/notificationClient.ts";
 import SockJS from 'sockjs-client';
 import type {Patient} from "../types/patient.ts";
-
-export interface AlertDto {
-    alertId?: number;
-    patientId: string;
-    riskScore: number;
-    message: string;
-    timestamp: string;
-    isRead?: boolean;
-}
-
-const getUserIdFromToken = (token: string) => {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-
-        const decoded = JSON.parse(jsonPayload);
-        return decoded.sub; // W Keycloak pole 'sub' to UUID użytkownika
-    } catch (e) {
-        console.error("Błąd dekodowania tokenu", e);
-        return null;
-    }
-};
+import {useAuthStore} from "../store/auth-store.ts";
+import {usePatientStore} from "../store/patients-store.ts";
 
 export const useNotifications = () => {
     const [alerts, setAlerts] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const clientRef = useRef<Client | null>(null);
+    const user = useAuthStore(state => state.user);
+    const assignedPatients = usePatientStore(state => state.assignedPatients)
 
     // --- 1. POBIERANIE HISTORYCZNYCH POWIADOMIEŃ PO ZALOGOWANIU ---
     useEffect(() => {
         const fetchInitialNotifications = async () => {
-            // Czekamy na poprawny token i ID zalogowanego lekarza (sub)
-            const token = localStorage.getItem('access_token');
-            if (!token) return;
 
-            const doctorId = getUserIdFromToken(token)
+            if (!user) return
 
             try {
-                // KROK A: Pobieramy pacjentów przypisanych do tego lekarza
-                // ⚠️ Dostosuj ten URL do endpointu w swoim serwisie medical-staff!
-                const patientsResponse = await fetch(`http://localhost:8080/api/v1/gateway/dashboard/staff/${doctorId}/patients/assigned`, {
-                    headers: {Authorization: `Bearer ${token}`}
-                });
-
-                if (!patientsResponse.ok) return;
-                const patients = await patientsResponse.json();
-
-                // KROK B: Dla każdego pacjenta odpytujemy Twój NotificationController
-                const alertPromises = patients.map(async (patient: Patient) => {
-
+                const alertPromises = assignedPatients.map(async (patient: Patient) => {
                     const patientId = patient.id;
                     //TODO W PRZYSZLOSCI WYSYLAC LISTE DLA OGRANICZENIA ZAPYTAN
-                    return await notificationService.getNewNotifications(patientId);
+                    return await notificationService.getNewNotifications(patientId, user.id);
                 });
-
-                // Czekamy, aż wszystkie zapytania do NotificationController się zakończą
                 const allAlertsArrays = await Promise.all(alertPromises);
-
-                // Aktualizujemy stan dzwonka w Navbarze
                 const flatAlerts = allAlertsArrays.flat();
-
                 setAlerts(flatAlerts);
                 setUnreadCount(flatAlerts.length);
 
@@ -77,7 +37,7 @@ export const useNotifications = () => {
         };
 
         fetchInitialNotifications();
-    }, []);
+    }, [assignedPatients, user]);
 
 
     // --- 2. NASŁUCHIWANIE NA NOWE POWIADOMIENIA (WEBSOCKET) ---
@@ -121,12 +81,16 @@ export const useNotifications = () => {
         };
     }, []);
 
-    const markAllAsRead = () => {
-        setUnreadCount(0);
-        // Opcjonalnie: Tutaj możesz w przyszłości dodać wywołanie HTTP: 
-        // fetch('/api/v1/notifications/mark-read', { method: 'PUT', ... })
-        // aby zaktualizować status 'isRead' w bazie danych na true.
+    const markAsRead = async (ids: string[]) => {
+        try {
+            console.log(ids)
+            await notificationService.markAsRead(ids, user?.id || '');
+            setUnreadCount((prev) => prev - ids.length);
+            setAlerts((prev) => prev.filter(alert => !ids.includes(alert.alertId)));
+        } catch (error) {
+            console.error('Błąd podczas oznaczania powiadomień jako przeczytane:', error);
+        }
     };
 
-    return {alerts, unreadCount, markAllAsRead};
+    return {alerts, unreadCount, markAsRead};
 };

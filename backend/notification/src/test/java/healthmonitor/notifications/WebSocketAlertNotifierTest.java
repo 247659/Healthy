@@ -2,6 +2,7 @@ package healthmonitor.notifications;
 
 import healthmonitor.notifications.communication.WebSocketAlertNotifier;
 import healthmonitor.notifications.model.Alert;
+import healthmonitor.notifications.model.AlertDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,7 +29,7 @@ class WebSocketAlertNotifierTest {
         Alert alert = Alert.builder().alertId(UUID.randomUUID().toString()).message("Test").build();
         List<String> doctorIds = List.of("doc-1", "doc-2", "doc-3");
 
-        webSocketAlertNotifier.notifyDoctors(alert, doctorIds);
+        webSocketAlertNotifier.notifyDoctor(mapToDto(alert), doctorIds);
 
         verify(messagingTemplate, times(1)).convertAndSendToUser("doc-1", "/queue/alerts", alert);
         verify(messagingTemplate, times(1)).convertAndSendToUser("doc-2", "/queue/alerts", alert);
@@ -42,8 +43,21 @@ class WebSocketAlertNotifierTest {
         Alert alert = Alert.builder().alertId(UUID.randomUUID().toString()).message("Test").build();
         List<String> emptyDoctorIds = List.of();
 
-        webSocketAlertNotifier.notifyDoctors(alert, emptyDoctorIds);
+        webSocketAlertNotifier.notifyDoctor(mapToDto(alert), emptyDoctorIds);
 
         verify(messagingTemplate, never()).convertAndSendToUser(anyString(), anyString(), any());
+    }
+
+    private AlertDto mapToDto(Alert alert) {
+        return AlertDto.builder()
+                .alertId(alert.getAlertId())
+                .patientId(alert.getPatientId())
+                .riskScore(alert.getRiskScore())
+                .severity(alert.getSeverity())
+                .message(alert.getMessage())
+                .details(alert.getDetails())
+                .timestamp(alert.getTimestamp())
+                .isRead(alert.isRead())
+                .build();
     }
 }
