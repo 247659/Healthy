@@ -37,7 +37,7 @@ jobs:
           cache: 'maven'
 
       - name: Running tests and building the application
-        run: mvn clean package -Dtest="!*PerformanceTest"
+        run: mvn clean verify -Dtest="!*PerformanceTest"
 
       - name: SonarQube Analysis with Quality Gate
         env:
