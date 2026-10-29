@@ -1,11 +1,11 @@
 import {Routes, Route, useLocation} from 'react-router-dom';
 import { useState } from 'react';
 import Navbar from './components/Navbar';
-import Login from './components/Login';
-import ProfileSetup from './components/ProfileSetup';
-import StaffProfile from "./components/StaffProfile";
-import PatientDashboard from "./components/PatientDashboard";
-import PatientDetails from "./components/PatientDetails.tsx";
+import Login from './pages/auth/Login.tsx';
+import ProfileSetup from './pages/settings/ProfileSetup.tsx';
+import StaffProfile from "./pages/settings/StaffProfile.tsx";
+import PatientDashboard from "./pages/dashboard/PatientDashboard.tsx";
+import PatientDetails from "./pages/dashboard/PatientDetails.tsx";
 
 function App() {
     const [token, setToken] = useState(localStorage.getItem('access_token'));

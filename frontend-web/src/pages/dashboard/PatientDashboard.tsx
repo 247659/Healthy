@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {medicalStaffService} from "../api/staffClient.ts";
-import {gatewayService} from "../api/gatewayClient.ts";
-import type {Patient} from "../types/patient.ts";
+import {medicalStaffService} from "../../api/staffClient.ts";
+import {gatewayService} from "../../api/gatewayClient.ts";
+import type {Patient} from "../../types/patient.ts";
+import {usePatientStore} from "../../store/patients-store.ts";
 
 const PatientDashboard = () => {
-    const [patients, setPatients] = useState<Patient[]>([]);
-    const [assignedPatients, setAssignedPatients] = useState<Patient[]>([]);
-    const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
+    const patients = usePatientStore((state) => state.unassignedPatients);
+    const assignedPatients = usePatientStore((state) => state.assignedPatients);
 
+    const setPatients = usePatientStore(state => state.setUnassignedPatients)
+    const setAssignedPatients = usePatientStore(state => state.setAssignedPatients)
+    
+    const addPatient = usePatientStore(state => state.addUnassignedPatient)
+    const addAssignedPatient = usePatientStore(state => state.addAssignedPatient)
+
+    const deletePatient = usePatientStore(state => state.deleteUnassignedPatient)
+    const deleteAssignedPatient = usePatientStore(state => state.deleteAssignedPatient)
+
+    const [activeTab, setActiveTab] = useState<'assigned' | 'unassigned'>('assigned');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -53,7 +63,7 @@ const PatientDashboard = () => {
         };
 
         fetchData();
-    }, [token, doctorId, navigate]);
+    }, [token, doctorId, navigate, setPatients, setAssignedPatients]);
 
     const handleAssignPatient = async (patientId: string) => {
         try {
@@ -61,8 +71,8 @@ const PatientDashboard = () => {
 
             const patientToAdd = patients.find(p => p.id === patientId);
             if (patientToAdd) {
-                setAssignedPatients(prev => [...prev, patientToAdd]);
-                setPatients(prev => prev.filter(p => p.id !== patientId));
+                addAssignedPatient(patientToAdd);
+                deletePatient(patientToAdd);
             }
         } catch (err) {
             console.error("Błąd przypisywania pacjenta:", err);
@@ -81,8 +91,8 @@ const PatientDashboard = () => {
 
             const patientToRemove = assignedPatients.find(p => p.id === patientId);
             if (patientToRemove) {
-                setPatients(prev => [...prev, patientToRemove]);
-                setAssignedPatients(prev => prev.filter(p => p.id !== patientId));
+                deleteAssignedPatient(patientToRemove);
+                addPatient(patientToRemove);
             }
         } catch (err) {
             console.error("Błąd odpinania pacjenta:", err);

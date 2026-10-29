@@ -1,8 +1,8 @@
 // frontend/web/src/components/PatientList.tsx
 import { useEffect, useState } from 'react';
 import './PatientList.css';
-import {patientService} from "../api/patientClient.ts";
-import type {Patient} from "../types/patient.ts";
+import {patientService} from "../../api/patientClient.ts";
+import type {Patient} from "../../types/patient.ts";
 
 
 const PatientList = () => {
